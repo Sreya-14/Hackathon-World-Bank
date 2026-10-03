@@ -4,4 +4,13 @@ dev-dist/
 .DS_Store
 *.local
 
+# Exported model files are large; rebuild with ml/export_models.py
+app/public/models/
+app/public/ort/
 
+# Python
+__pycache__/
+.venv/
+.venv-*/
+ml/.cache/
+ml/eval/results/raw/

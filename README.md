@@ -1,6 +1,6 @@
-# Porchlight
+# Porchlight — offline tourism assistant
 
-Hack-Nation × World Bank, Small AI for Development: Tourism (Annex C).
+Hack-Nation Challenge 04 (Tourism). An offline, voice-first PWA that helps a small farm-tour operator turn a foreign visitor's enquiry into a confirmed booking. Guests write in English or German; the operator reads and hears Malayalam or Tamil, and approves every message.
 
 A small tour or craft business in Wayanad, Kerala describes what it offers in a WhatsApp voice note, in Malayalam. Small AI models turn that into a listing in English and German. The vendor hears it read back and approves it, and tourists find the vendor on a map that works offline.
 

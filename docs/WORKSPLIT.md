@@ -47,12 +47,12 @@ Done when the full demo runs on the mock: share → summary → draft → approv
 1. **Shell (H0–3)**: install, routing, `/share?text=` handler + paste box, big-icon audio-first layout, "preparing" screen driven by `LoadProgress`.
 2. **Content (H1–4)**: `app/src/content/`
    - `TourFacts` type (price, days, hours, duration, meeting point, included, dietary/kids/access yes/no, payment).
-   - Reply templates per intent in **en, fr, de** (sent to the guest) and **sw** (what Noor reads and hears), with `{placeholders}` filled from her facts. Have a person check each translation and label any that are generated.
+   - Reply templates per intent in **en, fr, de** (sent to the guest) and **sw** (what the operator reads and hears), with `{placeholders}` filled from her facts. Have a person check each translation and label any that are generated.
    - Swahili one-line summary per intent (what gets read aloud, e.g. "Mgeni anauliza bei" – "the guest is asking the price"). Read the template summary aloud rather than the raw machine translation, which is safer.
-   - The footer line on every outgoing message ("prepared with a translation tool, approved by Noor").
+   - The footer line on every outgoing message ("prepared with a translation tool, approved by the operator").
 3. **Core loop UI (H3–7)**: Dexie DB (facts, enquiries, bookings, outbox) → enquiry screen (icons, summary, labelled MT text) → draft from template → approve / edit → outbox → `sms:` / `wa.me` links. "Not sure" screen showing the reason.
    - Rules: `chrono-node` for dates, regex for group size → booking confirm/decline.
-4. **Voice UI (H7–10)**: play button (`speak`), MediaRecorder → `transcribe`. **Facts setup asks one question per fact** and reads each answer back for confirmation (Swahili numbers and weekdays parsed by regex; we're not doing free-form extraction). "Not sure" voice answer → `translateFromSwahili` → labelled; if it returns `null`, send "Noor will call you".
+4. **Voice UI (H7–10)**: play button (`speak`), MediaRecorder → `transcribe`. **Facts setup asks one question per fact** and reads each answer back for confirmation (Swahili numbers and weekdays parsed by regex; we're not doing free-form extraction). "Not sure" voice answer → `translateFromSwahili` → labelled; if it returns `null`, send "We will call you".
 5. **Polish (H10–13)**: booking log + reminders, outbox badge clears when back online, PIN, 90-day auto-delete, export/wipe, app icons.
 6. **Evidence + submission share**: `docs/evidence.md` (UN Tourism/WDI, Enterprise Surveys, GSMA, Findex, OSM Overpass, OpenCelliD, each with source, year and country), problem statement, video script, deck.
 
