@@ -70,7 +70,7 @@ export default function App() {
     return c;
   }, [data]);
 
-  // Hosts with their porch light on (checked in recently) come first.
+  // Hosts whose lantern is lit (checked in recently) come first.
   const visible = useMemo(
     () =>
       data.features

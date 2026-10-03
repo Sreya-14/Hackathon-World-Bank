@@ -25,8 +25,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'Porchlight',
-        short_name: 'Porchlight',
+        name: 'Lantern',
+        short_name: 'Lantern',
         description: 'Find local hosts, tours and crafts in Wayanad. Works offline.',
         // Relative URLs resolve against the manifest, so they work at / and under a sub-path.
         start_url: '.',

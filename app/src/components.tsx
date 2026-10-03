@@ -63,7 +63,7 @@ export function TopBar({ online, offlineReady, onMenu }: { online: boolean; offl
           <svg viewBox="0 0 32 32"><circle cx="16" cy="13" r="7" /><path d="M16 30c-1-4-9-9-9-17a9 9 0 0 1 18 0c0 8-8 13-9 17z" /></svg>
         </span>
         <span className="brand-text">
-          <strong>Porchlight</strong>
+          <strong>Lantern</strong>
           <small>{t('tagline')}</small>
         </span>
       </button>
@@ -208,7 +208,19 @@ export function DetailSheet({ listing, online, onClose }: { listing: Listing | n
             <h2>{p.title[lang]}</h2>
             <Activity p={p} />
             <p className="desc">{p.description[lang]}</p>
-            <p className="ai-note">🤖 {t('aiNote')}</p>
+            <p className="ai-note">
+              🤖 {t('aiNote')}
+              {p.machine_translated?.includes(lang) && ` ${t('machineTranslated')}`}
+            </p>
+
+            {!!p.includes?.[lang]?.length && (
+              <div className="includes">
+                <span className="includes-label">{t('includes')}</span>
+                {p.includes[lang].map((item) => (
+                  <span key={item} className="pill">✓ {item}</span>
+                ))}
+              </div>
+            )}
 
             <dl className="facts">
               <div>
@@ -219,10 +231,17 @@ export function DetailSheet({ listing, online, onClose }: { listing: Listing | n
                 <dt>{t('hours')}</dt>
                 <dd>{p.hours ?? <span className="muted">{t('askHost')}</span>}</dd>
               </div>
+              {p.duration && (
+                <div className="wide">
+                  <dt>{t('duration')}</dt>
+                  <dd>{p.duration}</dd>
+                </div>
+              )}
               <div className="wide">
                 <dt>{t('location')}</dt>
                 <dd>
                   {p.privacy === 'area' ? `◌ ${t('area', { n: p.radius_m ?? 200 })}` : p.privacy === 'meeting' ? `🚩 ${t('meeting')}` : `📍 ${t('exact')}`}
+                  {p.meeting_point?.[lang] && <span className="meeting-note">“{p.meeting_point[lang]}”</span>}
                 </dd>
               </div>
             </dl>

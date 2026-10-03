@@ -14,7 +14,7 @@ export interface SavedArea {
   bytes: number;
 }
 
-export const db = new Dexie('porchlight') as Dexie & {
+export const db = new Dexie('lantern') as Dexie & {
   kv: EntityTable<KV, 'key'>;
   areas: EntityTable<SavedArea, 'key'>;
 };

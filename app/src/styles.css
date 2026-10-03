@@ -345,7 +345,7 @@ button:disabled {
   opacity: 0.6;
 }
 
-/* "Porch light on": the host checked in today. */
+/* "Lantern lit": the host checked in today. */
 .pin-glow {
   display: none;
   position: absolute;
@@ -744,6 +744,29 @@ button:disabled {
   margin: -4px 0 0;
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+.includes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.includes-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-right: 2px;
+}
+
+.meeting-note {
+  display: block;
+  margin-top: 4px;
+  font-weight: 500;
+  font-style: italic;
 }
 
 .facts {

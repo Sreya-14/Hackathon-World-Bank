@@ -1,0 +1,17 @@
+# Lantern server. MOCK_AI=true needs only these.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+httpx>=0.27
+twilio>=9.0
+pydantic>=2.7
+python-dotenv>=1.0
+pillow>=10.0                   # photo blur/brightness check
+numpy>=1.26
+soundfile>=0.12                # WAV -> OGG/Opus for WhatsApp voice notes
+pytest>=8.0
+# Postgres / Supabase (only if DATABASE_URL is postgres://)
+# psycopg[binary]>=3.2
+#
+# Real ML layer (MOCK_AI=false): also install ../ml/requirements-pipeline.txt,
+# then download the models once with:  cd ../ml && python -m pipeline.models

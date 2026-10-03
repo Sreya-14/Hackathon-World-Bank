@@ -1,6 +1,6 @@
-# Listings API: what the tourist app expects from the backend
+# Listings API: what the tourist app expects from the server
 
-The tourist app (`app/`) reads listings from the backend when it's built with `VITE_API_URL` set. Without it, the app shows the bundled sample listings in `app/public/data/sample-listings.json`. Those use the same format, so that file is a working example.
+The tourist app (`app/`) reads listings from the Lantern server (`server/`) when it's built with `VITE_API_URL` set. Without it, the app shows the bundled sample listings in `app/public/data/sample-listings.json`. Those use the same format, so that file is a working example.
 
 TypeScript types: [`app/src/types.ts`](../app/src/types.ts).
 
@@ -27,8 +27,12 @@ CORS must allow the app's origin, e.g. `https://sreya-14.github.io` and `http://
     "category": "tour",
     "title": { "en": "Coffee plantation walk near Kalpetta", "de": "Kaffeeplantagen-Spaziergang bei Kalpetta" },
     "description": { "en": "…", "de": "…" },
-    "price": "₹500 per person",
-    "hours": "9:00–12:00",
+    "price": "500 rupees per person",
+    "hours": "9 to 12",
+    "duration": null,
+    "includes": { "en": ["coffee tasting"], "de": ["Kaffeeverkostung"] },
+    "meeting_point": { "en": null, "de": null },
+    "machine_translated": ["de"],
     "photo_url": "https://<backend>/media/….jpg",
     "privacy": "area",
     "radius_m": 200,
@@ -47,9 +51,11 @@ CORS must allow the app's origin, e.g. `https://sreya-14.github.io` and `http://
 | `coordinates` | `[lon, lat]`. For `privacy: "area"` this must already be the **snapped** point (~200 m grid); the exact spot never reaches the app. For `"meeting"`, it's the meeting point. |
 | `category` | One of `food`, `craft`, `textile`, `tour`, `experience`, `other`. |
 | `title`, `description` | English and German. |
-| `price`, `hours` | `null` unless the vendor said them (no invented facts). The app shows "Ask the host" for `null`. |
+| `price`, `hours`, `duration` | As the vendor said them (English); `null` unless she said them (no invented facts). The app shows "Ask the host" for `null` price/hours. |
+| `includes`, `meeting_point` | Per language, from the ML layer. Optional. |
+| `machine_translated` | Languages produced by machine translation; the app labels them. Optional. |
 | `privacy` | `exact`, `area` or `meeting`. Controls the pin style and the location text. |
 | `radius_m` | Grid size for `area`, otherwise `null`. |
-| `days_since_checkin` | Days since the vendor's last 📍 check-in (fractional), or `null`. Under 1 = "porch light on" glow; over 7 = faded pin. |
+| `days_since_checkin` | Days since the vendor's last 📍 check-in (fractional), or `null`. Under 1 = "lantern lit" glow; over 7 = faded pin. |
 | `seed` | `true` for sample data; the app disables contact for these. |
 | `whatsapp_url` | Only in `/api/bundle`. `https://wa.me/<digits>?text=<greeting>` with the greeting in the vendor's language (Malayalam) plus an English line. |

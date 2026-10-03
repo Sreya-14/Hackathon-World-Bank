@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ml">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#1b2330" />
+<title>Lantern for hosts</title>
+<style>
+  :root {
+    --bg: #f6f1e9; --surface: #fffdf9; --surface-2: #f3ece1; --ink: #1b2330; --muted: #776d62;
+    --line: #e7ddcf; --amber: #f2a33a; --amber-deep: #c9770f; --amber-soft: #fdefd9; --ok: #2f8a5b; --red: #c2412d;
+    --me: #fde9c4; --shadow: 0 2px 4px rgb(27 35 48 / .06), 0 10px 28px rgb(27 35 48 / .12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f141b; --surface: #171e27; --surface-2: #1f2833; --ink: #f1ebe2; --muted: #a2988c; --line: #2b3542;
+      --amber: #f6b04f; --amber-deep: #f6b04f; --amber-soft: #3a2b16; --ok: #5fcf93; --me: #3a2b16; --shadow: 0 10px 28px rgb(0 0 0 / .5); }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 ui-sans-serif, system-ui, 'Noto Sans Malayalam', 'Noto Sans', sans-serif; }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; border: 0; background: none; }
+  .en { display: block; color: var(--muted); font-size: .8em; }
+  /* Chat layout: header and composer stay put; only the message list scrolls. */
+  .wrap { max-width: 560px; margin: 0 auto; height: 100dvh; display: flex; flex-direction: column; }
+  header { flex: none; z-index: 2; display: flex; align-items: center; gap: 10px; padding: max(12px, env(safe-area-inset-top)) 16px 12px; background: var(--ink); color: #fff; }
+  .logo { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; background: radial-gradient(circle at 50% 38%, #ffd98f 0, var(--amber) 45%, #c36b05 100%); }
+  .logo svg { width: 20px; height: 20px; }
+  header strong { display: block; font-size: 1.05rem; }
+  header small { color: #c9c2b8; font-size: .78rem; }
+  .state { margin-left: auto; font-size: .75rem; padding: 4px 10px; border-radius: 99px; background: rgb(255 255 255 / .14); white-space: nowrap; }
+
+  /* Onboarding */
+  .start { flex: 1; overflow-y: auto; padding: 28px 20px; display: flex; flex-direction: column; gap: 16px; }
+  .start h1 { margin: 0; font-size: 1.5rem; line-height: 1.25; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px; box-shadow: var(--shadow); }
+  .steps { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+  label.field { display: grid; gap: 6px; font-weight: 600; }
+  input[type=tel], input[type=text], textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); }
+  .primary { width: 100%; min-height: 54px; border-radius: 14px; background: var(--ink); color: var(--surface); font-weight: 700; font-size: 1.05rem; }
+  .error { color: var(--red); font-weight: 600; margin: 0; }
+
+  /* Chat */
+  #log { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 8px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 88%; padding: 10px 12px; border-radius: 16px; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+  .bot { align-self: flex-start; background: var(--surface); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
+  .me { align-self: flex-end; background: var(--me); border-bottom-right-radius: 6px; }
+  .msg audio { display: block; width: 260px; max-width: 100%; margin-top: 8px; }
+  .msg img { display: block; max-width: 220px; border-radius: 10px; }
+  .typing { align-self: flex-start; display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: .9rem; }
+  .dots span { display: inline-block; width: 7px; height: 7px; margin-right: 3px; border-radius: 50%; background: var(--amber); animation: b 1.2s infinite; }
+  .dots span:nth-child(2) { animation-delay: .2s } .dots span:nth-child(3) { animation-delay: .4s }
+  @keyframes b { 50% { transform: translateY(-4px); opacity: .5 } }
+
+  /* Composer */
+  .composer { flex: none; max-height: 55dvh; overflow-y: auto; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 12px max(12px, env(safe-area-inset-bottom)); display: grid; gap: 10px; }
+  .quick { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  .quick:empty { display: none; }
+  .quick button { flex: none; min-height: 44px; padding: 6px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--surface-2); font-weight: 650; text-align: left; line-height: 1.15; }
+  .quick button.go { background: var(--ok); color: #fff; border-color: var(--ok); }
+  .quick button .en { color: inherit; opacity: .75; }
+  .tools { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .tool { min-height: 64px; border-radius: 14px; background: var(--surface-2); display: grid; place-items: center; text-align: center; font-weight: 650; font-size: .9rem; line-height: 1.15; padding: 6px; }
+  .tool .icon { font-size: 1.4rem; display: block; }
+  .tool.rec { background: var(--amber); color: #1b2330; }
+  .tool.rec.on { background: var(--red); color: #fff; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgb(194 65 45 / .18) } }
+  .tool input { display: none; }
+  .row { display: flex; gap: 8px; }
+  .row input { flex: 1; min-width: 0; }
+  .send { min-width: 54px; border-radius: 12px; background: var(--ink); color: var(--surface); font-weight: 700; }
+  details summary { cursor: pointer; color: var(--muted); font-size: .85rem; }
+  details[open] summary { margin-bottom: 8px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="13" r="7" fill="#fff6e0"/><path d="M16 30c-1-4-9-9-9-17a9 9 0 0 1 18 0c0 8-8 13-9 17z" fill="#1b2330" opacity=".85"/></svg></span>
+    <div><strong>ലാന്റേൺ · Lantern</strong><small>ഹോസ്റ്റുകൾക്ക് · for hosts</small></div>
+    <span class="state hidden" id="state"></span>
+  </header>
+
+  <section class="start" id="start">
+    <h1>നിങ്ങളുടെ ടൂർ ടൂറിസ്റ്റുകൾക്ക് കാണിക്കൂ<span class="en">Show your tour to tourists</span></h1>
+    <div class="card">
+      <ol class="steps">
+        <li>📷 ഒരു ഫോട്ടോ അയയ്ക്കുക <span class="en">Send a photo</span></li>
+        <li>🎤 നിങ്ങളുടെ ടൂറിനെക്കുറിച്ച് മലയാളത്തിൽ പറയുക <span class="en">Describe your tour in Malayalam</span></li>
+        <li>👂 കേട്ട് 👍 അയയ്ക്കുക <span class="en">Listen to the read-back and send 👍</span></li>
+        <li>📍 ലൊക്കേഷൻ അയയ്ക്കുക <span class="en">Share your location</span></li>
+      </ol>
+    </div>
+    <label class="field">നിങ്ങളുടെ വാട്ട്‌സ്ആപ്പ് നമ്പർ <span class="en">Your WhatsApp number. Tourists contact you on it.</span>
+      <input type="tel" id="number" inputmode="tel" placeholder="+91 98765 43210" autocomplete="tel" />
+    </label>
+    <p class="error hidden" id="numberError">രാജ്യ കോഡ് ഉൾപ്പെടെ നമ്പർ നൽകുക <span class="en">Enter the number with country code, e.g. +91</span></p>
+    <button class="primary" id="begin">തുടങ്ങുക · Start</button>
+  </section>
+
+  <div id="log" class="hidden"></div>
+
+  <div class="composer hidden" id="composer">
+    <div class="quick" id="quick"></div>
+    <div class="tools">
+      <button class="tool rec" id="rec"><span><span class="icon">🎤</span><span id="recLabel">വോയ്‌സ് നോട്ട്</span><span class="en" id="recSub">Voice note</span></span></button>
+      <label class="tool"><span><span class="icon">📷</span>ഫോട്ടോ<span class="en">Photo</span></span><input type="file" id="photo" accept="image/*" capture="environment" /></label>
+      <button class="tool" id="loc"><span><span class="icon">📍</span>ലൊക്കേഷൻ<span class="en">Location</span></span></button>
+    </div>
+    <details id="typeBox">
+      <summary>സംസാരിക്കാൻ കഴിയുന്നില്ലേ? ടൈപ്പ് ചെയ്യുക · Can't speak? Type in Malayalam</summary>
+      <div class="row"><input type="text" id="typed" placeholder="ഉദാ: ഞാൻ ഒരു കാപ്പിത്തോട്ടം ടൂർ നടത്തുന്നു…" /><button class="send" id="sendTyped">↑</button></div>
+    </details>
+    <details id="manualLoc" class="hidden">
+      <summary>ലൊക്കേഷൻ കിട്ടിയില്ല: കൈകൊണ്ട് നൽകുക · Enter location by hand</summary>
+      <div class="row"><input type="text" id="latlon" placeholder="11.6085, 76.0830" /><button class="send" id="sendLatLon">↑</button></div>
+    </details>
+    <div class="row"><input type="text" id="text" placeholder="സന്ദേശം · Message" /><button class="send" id="send">↑</button></div>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+const log = $('log');
+let number = '';
+let after = 0;
+let state = null;
+try { number = localStorage.getItem('lantern.host.number') || ''; } catch { /* storage blocked */ }
+
+const STATES = {
+  NEW: 'തുടക്കം · Start', PROCESSING: 'തയ്യാറാക്കുന്നു… · Preparing…', NEEDS_REVIEW: 'വീണ്ടും പറയുക · Say again',
+  AWAITING_APPROVAL: 'കേട്ട് അംഗീകരിക്കുക · Approve', AWAITING_LOCATION: 'ലൊക്കേഷൻ · Location',
+  AWAITING_PRIVACY: 'സ്വകാര്യത · Privacy', AWAITING_MEETING_POINT: 'കൂടിക്കാഴ്ച സ്ഥലം · Meeting point', LIVE: 'മാപ്പിൽ ഉണ്ട് · Live',
+};
+const QUICK = {
+  AWAITING_APPROVAL: [['👍', 'ശരിയാണ്', 'Approve', true], ['🔁', 'വീണ്ടും പറയാം', 'Re-record']],
+  AWAITING_PRIVACY: [['1', 'കൃത്യമായ സ്ഥലം', 'Exact spot'], ['2', 'ഏകദേശ പ്രദേശം', 'Rough area'], ['3', 'കൂടിക്കാഴ്ച സ്ഥലം', 'Meeting point']],
+  LIVE: [['📍', 'ഇന്ന് ലഭ്യമാണ്', "I'm here today", true], ['❌', 'മറയ്ക്കുക', 'Hide listing']],
+};
+
+function bubble(cls, text, { audio, img } = {}) {
+  const el = document.createElement('div');
+  el.className = `msg ${cls}`;
+  if (img) { const i = document.createElement('img'); i.src = img; i.alt = ''; el.append(i); }
+  if (text) el.append(document.createTextNode(text.replace(/_([^_]+)_/g, '$1').replace(/\*([^*]+)\*/g, '$1')));
+  if (audio) { const a = document.createElement('audio'); a.controls = true; a.preload = 'none'; a.src = audio; el.append(a); }
+  log.append(el);
+  el.scrollIntoView({ block: 'end', behavior: 'smooth' });
+  return el;
+}
+
+let typing = null;
+function showTyping(on) {
+  if (on && !typing) {
+    typing = document.createElement('div');
+    typing.className = 'typing';
+    typing.innerHTML = '<span class="dots"><span></span><span></span><span></span></span> തയ്യാറാക്കുന്നു… · preparing your listing';
+    log.append(typing);
+    typing.scrollIntoView({ block: 'end' });
+  } else if (!on && typing) { typing.remove(); typing = null; }
+}
+
+function renderQuick() {
+  const box = $('quick');
+  box.innerHTML = '';
+  for (const [value, ml, en, go] of QUICK[state] || []) {
+    const b = document.createElement('button');
+    if (go) b.className = 'go';
+    b.innerHTML = `${value} ${ml}<span class="en">${en}</span>`;
+    b.onclick = () => { bubble('me', `${value} ${ml}`); send({ text: value }); };
+    box.append(b);
+  }
+}
+
+async function send(fields) {
+  const fd = new FormData();
+  fd.append('number', number);
+  for (const [k, v] of Object.entries(fields)) if (v !== undefined && v !== null && v !== '') fd.append(k, v);
+  const res = await fetch('host/api/send', { method: 'POST', body: fd });
+  if (!res.ok) bubble('bot', '⚠️ അയയ്ക്കാൻ കഴിഞ്ഞില്ല. Could not send, please try again.');
+}
+
+async function poll() {
+  try {
+    const res = await fetch(`host/api/messages?number=${encodeURIComponent(number)}&after=${after}`);
+    const data = await res.json();
+    if (data.messages.length) showTyping(false);
+    for (const m of data.messages) { after = m.id; bubble('bot', m.text, { audio: m.media_url }); }
+    if (data.messages.length) log.scrollTop = log.scrollHeight; // land on the newest message
+    const s = data.vendor?.state ?? 'NEW';
+    if (s !== state) { state = s; renderQuick(); }
+    $('state').textContent = (STATES[s] || s) + (data.vendor?.hidden ? ' · മറച്ചു' : '');
+    showTyping(s === 'PROCESSING');
+  } catch { /* server restarting */ }
+  setTimeout(poll, 1500);
+}
+
+function begin() {
+  $('start').classList.add('hidden');
+  for (const id of ['log', 'composer', 'state']) $(id).classList.remove('hidden');
+  poll();
+}
+
+$('begin').onclick = () => {
+  const digits = $('number').value.replace(/\D/g, '');
+  if (digits.length < 8 || digits.length > 15) { $('numberError').classList.remove('hidden'); return; }
+  number = '+' + digits;
+  try { localStorage.setItem('lantern.host.number', number); } catch { /* keep in memory */ }
+  begin();
+  if (after === 0) send({ text: 'hi' });
+};
+
+// Voice notes: tap to start, tap again to send.
+let recorder = null, chunks = [], timer = null, started = 0;
+$('rec').onclick = async () => {
+  if (recorder) { recorder.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const type = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'].find((t) => MediaRecorder.isTypeSupported(t)) || '';
+    recorder = new MediaRecorder(stream, type ? { mimeType: type } : {});
+    chunks = [];
+    recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    recorder.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop());
+      clearInterval(timer);
+      const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+      recorder = null;
+      $('rec').classList.remove('on');
+      $('recLabel').textContent = 'വോയ്‌സ് നോട്ട്'; $('recSub').textContent = 'Voice note';
+      if (blob.size < 2000) return;
+      const ext = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm';
+      bubble('me', '🎤', { audio: URL.createObjectURL(blob) });
+      send({ audio: new File([blob], `voice.${ext}`, { type: blob.type.split(';')[0] }) });
+    };
+    recorder.start();
+    started = Date.now();
+    $('rec').classList.add('on');
+    $('recSub').textContent = 'Tap to send';
+    timer = setInterval(() => { $('recLabel').textContent = `⏺ ${Math.floor((Date.now() - started) / 1000)}s`; }, 250);
+  } catch {
+    bubble('bot', '⚠️ മൈക്രോഫോൺ ലഭ്യമല്ല. ടൈപ്പ് ചെയ്യാം. Microphone not available: you can type instead.');
+    $('typeBox').open = true;
+  }
+};
+
+$('photo').onchange = (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  bubble('me', '', { img: URL.createObjectURL(f) });
+  send({ photo: f });
+  e.target.value = '';
+};
+
+$('loc').onclick = () => {
+  if (!navigator.geolocation) { $('manualLoc').classList.remove('hidden'); $('manualLoc').open = true; return; }
+  navigator.geolocation.getCurrentPosition(
+    (p) => { const { latitude: lat, longitude: lon } = p.coords; bubble('me', `📍 ${lat.toFixed(5)}, ${lon.toFixed(5)}`); send({ lat, lon }); },
+    () => { $('manualLoc').classList.remove('hidden'); $('manualLoc').open = true; },
+    { enableHighAccuracy: true, timeout: 10000 },
+  );
+};
+$('sendLatLon').onclick = () => {
+  const m = $('latlon').value.match(/(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)/);
+  if (!m) return;
+  bubble('me', `📍 ${m[1]}, ${m[2]}`); send({ lat: m[1], lon: m[2] }); $('latlon').value = '';
+};
+
+$('sendTyped').onclick = () => {
+  const t = $('typed').value.trim(); if (!t) return;
+  bubble('me', `⌨️ ${t}`); send({ typed_text: t }); $('typed').value = '';
+};
+$('send').onclick = () => {
+  const t = $('text').value.trim(); if (!t) return;
+  bubble('me', t); send({ text: t }); $('text').value = '';
+};
+$('text').onkeydown = (e) => { if (e.key === 'Enter') $('send').click(); };
+$('typed').onkeydown = (e) => { if (e.key === 'Enter') $('sendTyped').click(); };
+
+if (number) begin();
+</script>
+</body>
+</html>

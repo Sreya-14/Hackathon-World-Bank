@@ -1,4 +1,4 @@
-// Listings come from the Porchlight backend when VITE_API_URL is set; otherwise the
+// Listings come from the Lantern server when VITE_API_URL is set; otherwise the
 // app shows bundled sample listings so the map works on its own (e.g. GitHub Pages).
 import { cacheListings, getCachedListings } from './db';
 import type { ListingCollection } from './types';

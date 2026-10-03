@@ -7,7 +7,7 @@ const STRINGS = {
   placesNearby: { en: 'places to visit', de: 'Orte zum Besuchen' },
   placeNearby: { en: 'place to visit', de: 'Ort zum Besuchen' },
   noneInCategory: { en: 'Nothing in this category yet.', de: 'In dieser Kategorie gibt es noch nichts.' },
-  lightOn: { en: 'Porch light on today', de: 'Heute geöffnet' },
+  lightOn: { en: 'Lantern lit today', de: 'Heute geöffnet' },
   activeDaysAgo: { en: 'Active {n} days ago', de: 'Vor {n} Tagen aktiv' },
   activeYesterday: { en: 'Active yesterday', de: 'Gestern aktiv' },
   notActive: { en: 'Not checked in recently', de: 'Länger nicht aktiv' },
@@ -46,12 +46,15 @@ const STRINGS = {
   remove: { en: 'Remove', de: 'Entfernen' },
   saveFailed: { en: 'Could not save. Check your connection and try again.', de: 'Speichern fehlgeschlagen. Verbindung prüfen und erneut versuchen.' },
   locateMe: { en: 'Show my location', de: 'Meinen Standort zeigen' },
-  aboutTitle: { en: 'About Porchlight', de: 'Über Porchlight' },
+  aboutTitle: { en: 'About Lantern', de: 'Über Lantern' },
   about: {
     en: 'Hosts describe their tour or craft in a WhatsApp voice note, in their own language. A small AI writes the listing; the host hears it read back and approves it before it appears here. Nothing is invented: prices and hours show only if the host said them.',
     de: 'Gastgeber beschreiben ihre Tour oder ihr Handwerk per WhatsApp-Sprachnachricht in ihrer eigenen Sprache. Eine kleine KI schreibt den Eintrag; der Gastgeber hört ihn sich an und gibt ihn frei, bevor er hier erscheint. Nichts wird erfunden: Preise und Zeiten erscheinen nur, wenn der Gastgeber sie genannt hat.',
   },
   aiNote: { en: 'Written by AI from the host’s voice note, approved by the host.', de: 'Von KI aus der Sprachnachricht erstellt, vom Gastgeber freigegeben.' },
+  machineTranslated: { en: 'Machine-translated.', de: 'Maschinell übersetzt.' },
+  includes: { en: 'Included', de: 'Inklusive' },
+  duration: { en: 'Duration', de: 'Dauer' },
 } satisfies Record<string, Record<Lang, string>>;
 
 export type StringKey = keyof typeof STRINGS;
@@ -67,7 +70,7 @@ export const CATEGORY: Record<Category, { icon: string; label: Record<Lang, stri
 
 // --- Language store (a per-device preference, so localStorage is fine) ---
 
-const KEY = 'porchlight.lang';
+const KEY = 'lantern.lang';
 let current: Lang = (() => {
   try {
     const saved = localStorage.getItem(KEY);
