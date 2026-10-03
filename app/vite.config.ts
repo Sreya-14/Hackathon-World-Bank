@@ -14,8 +14,8 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 40 * 1024 * 1024,
       },
       manifest: {
-        name: 'Noor Tour Assistant',
-        short_name: 'Noor',
+        name: 'Tour Assistant',
+        short_name: 'Tours',
         lang: 'sw',
         start_url: '/',
         display: 'standalone',

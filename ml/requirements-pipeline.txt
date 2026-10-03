@@ -1,0 +1,20 @@
+# ML pipeline (server side): python -m venv .venv-pipeline, then
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements-pipeline.txt --prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+# then download/convert models: python -m pipeline.models
+torch
+faster-whisper
+# av 16+ dropped an argument faster-whisper 1.2 passes to av.open().
+av<16
+ctranslate2
+transformers>=4.44,<5
+sentencepiece
+soundfile
+numpy
+pydantic>=2
+huggingface_hub
+llama-cpp-python
+# eval
+datasets
+jiwer
+sacrebleu

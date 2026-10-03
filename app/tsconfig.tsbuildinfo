@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/engine/index.ts","./src/engine/mock.ts","./src/engine/real.ts","./src/engine/types.ts","./src/engine/worker.ts","./vite.config.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/main.tsx","./src/engine/config.ts","./src/engine/index.ts","./src/engine/intent.ts","./src/engine/langdetect.ts","./src/engine/mock.ts","./src/engine/protocol.ts","./src/engine/real.ts","./src/engine/types.ts","./src/engine/worker.ts","./vite.config.ts"],"version":"5.9.3"}

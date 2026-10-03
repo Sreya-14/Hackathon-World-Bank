@@ -1,0 +1,18 @@
+# Pinned to match the transformers.js v3 conversion script (export_models.py).
+# Newer transformers/optimum break the Marian and VITS exports.
+transformers==4.43.4
+# Newer torch switches to the dynamo exporter (needs onnxscript) and breaks this pinned stack.
+# pip install torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
+torch==2.4.1
+onnxruntime==1.19.2
+optimum==1.21.3
+onnx==1.16.2
+onnxconverter-common==1.14.0
+onnxslim==0.1.31
+# NVIDIA's index (which has 0.3.27) is often unreachable; the PyPI build works.
+onnx_graphsurgeon
+numpy<2
+ml-dtypes<0.5
+tqdm
+sentencepiece
+huggingface_hub

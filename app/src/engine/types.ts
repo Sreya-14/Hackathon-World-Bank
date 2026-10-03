@@ -1,7 +1,10 @@
 // THE CONTRACT between the Engine track (models) and the App track (UI).
 // Frozen: change only by agreement, in a small commit on main that both rebase onto.
 
-export type TouristLang = 'en' | 'fr' | 'de';
+/** Languages guests write in. */
+export type TouristLang = 'en' | 'de';
+/** Languages the operator reads and hears. Chosen once in setup and passed to each call. */
+export type OperatorLang = 'ml' | 'ta';
 
 export const INTENTS = [
   'price',
@@ -24,13 +27,14 @@ export type NotSureReason = 'low_confidence' | 'mixed_intents' | 'unsupported_la
 
 export interface Understanding {
   original: string;
-  /** Detected tourist language; 'unknown' always comes with status 'not_sure'. */
+  /** Detected guest language; 'unknown' always comes with status 'not_sure'. */
   lang: TouristLang | 'unknown';
-  /** Pivot text the intent sorter ran on (equals `original` when lang is 'en'). */
+  /** Pivot text the intent sorter ran on (equals `original` when lang is 'en'; '' when 'unknown'). */
   english: string;
-  /** Machine translation for Noor. The UI must label it as machine-translated. */
-  swahili: string;
-  /** All intents, sorted by score descending. */
+  /** Machine translation for the operator in `localLang`. The UI must label it as machine-translated. '' when lang is 'unknown'. */
+  local: string;
+  localLang: OperatorLang;
+  /** All intents, sorted by score descending. Empty when lang is 'unknown'. */
   intents: IntentScore[];
   /** Intents above the confidence threshold (zero, one or two). */
   accepted: IntentId[];
@@ -46,23 +50,23 @@ export interface LoadProgress {
 }
 
 export interface Engine {
-  /** Opus-MT + MiniLM. Must be ready before understand(). */
+  /** Opus-MT + MiniLM. Must be ready before understand(). Covers both operator languages. */
   loadCore(onProgress?: (p: LoadProgress) => void): Promise<void>;
-  /** MMS-TTS + Whisper. Optional; the app works without it. */
-  loadVoice(onProgress?: (p: LoadProgress) => void): Promise<void>;
-  ready(): { core: boolean; voice: boolean };
+  /** MMS-TTS + Whisper for one operator language. Optional; the app works without it. */
+  loadVoice(lang: OperatorLang, onProgress?: (p: LoadProgress) => void): Promise<void>;
+  ready(): { core: boolean; voice: OperatorLang[] };
 
   /** Detect language → translate → sort intent → decide confident / not sure. */
-  understand(message: string): Promise<Understanding>;
+  understand(message: string, to: OperatorLang): Promise<Understanding>;
 
   /**
-   * Translate Noor's free-form Swahili answer into the guest's language.
-   * Returns null when unsupported; the app then falls back to "Noor will call you".
+   * Translate the operator's free-form answer into the guest's language.
+   * Returns null when unsupported; the app then falls back to "We will call you".
    */
-  translateFromSwahili(text: string, to: TouristLang): Promise<string | null>;
+  translateFromLocal(text: string, from: OperatorLang, to: TouristLang): Promise<string | null>;
 
-  /** Swahili text → audio (WAV) to play. Requires the voice pack. */
-  speak(swahili: string): Promise<Blob>;
-  /** Recorded audio → Swahili text. Requires the voice pack. */
-  transcribe(audio: Blob): Promise<string>;
+  /** Text in the operator's language → audio (WAV) to play. Requires that language's voice pack. */
+  speak(text: string, lang: OperatorLang): Promise<Blob>;
+  /** Recorded audio → text in the operator's language. Requires that language's voice pack. */
+  transcribe(audio: Blob, lang: OperatorLang): Promise<string>;
 }
