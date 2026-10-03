@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Full-bleed background so the maskable crop stays inside the colour. -->
+  <rect width="512" height="512" fill="#6b4226"/>
+  <!-- Speech bubble -->
+  <path d="M120 140h272a32 32 0 0 1 32 32v136a32 32 0 0 1-32 32H232l-64 52v-52h-48a32 32 0 0 1-32-32V172a32 32 0 0 1 32-32z" fill="#faf6f1"/>
+  <!-- Coffee bean -->
+  <ellipse cx="256" cy="240" rx="58" ry="76" transform="rotate(-30 256 240)" fill="#6b4226"/>
+  <path d="M228 186c40 26 16 82 56 108" stroke="#faf6f1" stroke-width="12" fill="none" stroke-linecap="round"/>
+</svg>

@@ -8,7 +8,7 @@ export function createRealEngine(): Engine {
     loadVoice: notYet,
     ready: () => ({ core: false, voice: false }),
     understand: notYet,
-    translateFromSwahili: notYet,
+    translateFromEnglish: notYet,
     speak: notYet,
     transcribe: notYet,
   };

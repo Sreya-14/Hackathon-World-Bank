@@ -1,7 +1,9 @@
 // THE CONTRACT between the Engine track (models) and the App track (UI).
 // Frozen: change only by agreement, in a small commit on main that both rebase onto.
 
-export type TouristLang = 'en' | 'fr' | 'de';
+/** Guest languages. The vendor's interface is always English. */
+export const LANGS = ['en', 'de', 'ml', 'ta'] as const;
+export type Lang = (typeof LANGS)[number];
 
 export const INTENTS = [
   'price',
@@ -24,12 +26,13 @@ export type NotSureReason = 'low_confidence' | 'mixed_intents' | 'unsupported_la
 
 export interface Understanding {
   original: string;
-  /** Detected tourist language; 'unknown' always comes with status 'not_sure'. */
-  lang: TouristLang | 'unknown';
-  /** Pivot text the intent sorter ran on (equals `original` when lang is 'en'). */
+  /** Detected guest language; 'unknown' always comes with status 'not_sure'. */
+  lang: Lang | 'unknown';
+  /**
+   * The message in English: what the vendor reads and what the intent sorter ran on.
+   * Equals `original` when lang is 'en'; otherwise machine-translated and labelled as such in the UI.
+   */
   english: string;
-  /** Machine translation for Noor. The UI must label it as machine-translated. */
-  swahili: string;
   /** All intents, sorted by score descending. */
   intents: IntentScore[];
   /** Intents above the confidence threshold (zero, one or two). */
@@ -46,9 +49,9 @@ export interface LoadProgress {
 }
 
 export interface Engine {
-  /** Opus-MT + MiniLM. Must be ready before understand(). */
+  /** Translation + MiniLM. Must be ready before understand(). */
   loadCore(onProgress?: (p: LoadProgress) => void): Promise<void>;
-  /** MMS-TTS + Whisper. Optional; the app works without it. */
+  /** TTS + Whisper. Optional; the app works without it. */
   loadVoice(onProgress?: (p: LoadProgress) => void): Promise<void>;
   ready(): { core: boolean; voice: boolean };
 
@@ -56,13 +59,13 @@ export interface Engine {
   understand(message: string): Promise<Understanding>;
 
   /**
-   * Translate Noor's free-form Swahili answer into the guest's language.
-   * Returns null when unsupported; the app then falls back to "Noor will call you".
+   * Translate the vendor's free-form English answer into the guest's language.
+   * Returns null when unsupported; the app then falls back to "I will call you".
    */
-  translateFromSwahili(text: string, to: TouristLang): Promise<string | null>;
+  translateFromEnglish(text: string, to: Lang): Promise<string | null>;
 
-  /** Swahili text → audio (WAV) to play. Requires the voice pack. */
-  speak(swahili: string): Promise<Blob>;
-  /** Recorded audio → Swahili text. Requires the voice pack. */
+  /** English text → audio (WAV) to play. Requires the voice pack. */
+  speak(text: string): Promise<Blob>;
+  /** Recorded English audio → text. Requires the voice pack. */
   transcribe(audio: Blob): Promise<string>;
 }
