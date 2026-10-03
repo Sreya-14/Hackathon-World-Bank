@@ -1,82 +1,123 @@
-import { useEffect, useState } from 'react';
-import { getEngine, type LoadProgress } from './engine';
-import { useUnsentCount } from './db';
-import { processPending } from './pipeline';
-import { t, type StringKey } from './content/ui';
-import { go, useOnline, useRoute } from './hooks';
-import Home from './screens/Home';
-import EnquiryScreen from './screens/Enquiry';
-import Outbox from './screens/Outbox';
-import Bookings from './screens/Bookings';
-import Admin from './screens/Admin';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { API_URL, loadListings } from './api';
+import type { SavedArea } from './db';
+import { Carousel, CategoryChips, DetailSheet, MenuSheet, TopBar } from './components';
+import { useLang } from './i18n';
+import MapView from './MapView';
+import { getSavedArea, removeArea, saveArea, tilesUrl } from './tiles';
+import type { Category, ListingCollection } from './types';
 
-export default function App() {
-  const route = useRoute();
-  const online = useOnline();
-  const unsent = useUnsentCount();
-  const [progress, setProgress] = useState<LoadProgress | null>(null);
-  const [ready, setReady] = useState(getEngine().ready().core);
+const REFRESH_MS = 30_000; // new pins appear without a reload
 
-  useEffect(() => {
-    const engine = getEngine();
-    if (engine.ready().core) return;
-    engine
-      .loadCore(setProgress)
-      .then(() => {
-        setReady(true);
-        return processPending();
-      })
-      .catch((err) => console.error('loadCore failed', err));
-  }, []);
-
-  return (
-    <div className="app">
-      <header className="top">
-        <strong>{t('appName')}</strong>
-        <span className="status">
-          <span className={`dot ${online ? 'on' : 'off'}`} />
-          {online ? 'Online' : 'Offline'}
-        </span>
-      </header>
-
-      <main>
-        {!ready ? (
-          <div className="preparing">
-            <div className="big">☕</div>
-            <p>{t('preparing')}</p>
-            <progress max={1} value={progress?.progress ?? 0} />
-          </div>
-        ) : route.name === 'enquiry' ? (
-          <EnquiryScreen id={route.id} />
-        ) : route.name === 'outbox' ? (
-          <Outbox />
-        ) : route.name === 'bookings' ? (
-          <Bookings />
-        ) : route.name === 'admin' ? (
-          <Admin />
-        ) : (
-          <Home />
-        )}
-      </main>
-
-      <nav className="tabs">
-        <Tab icon="💬" label="messages" path="#/" active={route.name === 'home' || route.name === 'enquiry'} />
-        <Tab icon="📤" label="outbox" path="#/outbox" active={route.name === 'outbox'} badge={unsent} />
-        <Tab icon="📒" label="bookings" path="#/bookings" active={route.name === 'bookings'} />
-        <Tab icon="⚙️" label="admin" path="#/admin" active={route.name === 'admin'} />
-      </nav>
-    </div>
+function useMedia(query: string): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = matchMedia(query);
+      m.addEventListener('change', cb);
+      return () => m.removeEventListener('change', cb);
+    },
+    () => matchMedia(query).matches,
   );
 }
 
-function Tab({ icon, label, path, active, badge }: { icon: string; label: StringKey; path: string; active: boolean; badge?: number }) {
+function useOnline(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      addEventListener('online', cb);
+      addEventListener('offline', cb);
+      return () => (removeEventListener('online', cb), removeEventListener('offline', cb));
+    },
+    () => navigator.onLine,
+  );
+}
+
+export default function App() {
+  const lang = useLang();
+  const online = useOnline();
+  const dark = useMedia('(prefers-color-scheme: dark)');
+  const [data, setData] = useState<ListingCollection>({ type: 'FeatureCollection', features: [] });
+  const [category, setCategory] = useState<Category | 'all'>('all');
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [saved, setSaved] = useState<SavedArea | undefined>();
+  const [areaChecked, setAreaChecked] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState(false);
+  const [locateSignal, setLocateSignal] = useState(0);
+
+  useEffect(() => {
+    getSavedArea().then((a) => (setSaved(a), setAreaChecked(true)));
+  }, []);
+
+  const refresh = useCallback(() => {
+    loadListings().then(({ data }) => setData(data)).catch((err) => console.warn('listings unavailable', err));
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    if (!API_URL) return;
+    const timer = setInterval(() => navigator.onLine && refresh(), REFRESH_MS);
+    addEventListener('online', refresh);
+    return () => (clearInterval(timer), removeEventListener('online', refresh));
+  }, [refresh]);
+
+  const tiles = useMemo(() => tilesUrl(saved), [saved]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: data.features.length };
+    for (const f of data.features) c[f.properties.category] = (c[f.properties.category] ?? 0) + 1;
+    return c;
+  }, [data]);
+
+  // Hosts with their porch light on (checked in recently) come first.
+  const visible = useMemo(
+    () =>
+      data.features
+        .filter((f) => category === 'all' || f.properties.category === category)
+        .sort((a, b) => (a.properties.days_since_checkin ?? 99) - (b.properties.days_since_checkin ?? 99)),
+    [data, category],
+  );
+
+  const select = useCallback((id: number | null) => {
+    setSelectedId(id);
+    setDetailOpen(id !== null);
+  }, []);
+
+  async function save() {
+    setSaveError(false);
+    setProgress(0);
+    try {
+      const area = await saveArea(setProgress);
+      setSaved(area);
+      refresh();
+    } catch (err) {
+      console.error(err);
+      setSaveError(true);
+    } finally {
+      setProgress(null);
+    }
+  }
+
+  async function remove() {
+    await removeArea();
+    setSaved(undefined);
+  }
+
+  const selected = data.features.find((f) => f.properties.id === selectedId) ?? null;
+
   return (
-    <button className={`tab ${active ? 'on' : ''}`} onClick={() => go(path)} aria-current={active ? 'page' : undefined}>
-      <span className="tab-icon" aria-hidden>
-        {icon}
-        {!!badge && <span className="badge">{badge}</span>}
-      </span>
-      <span className="tab-label">{t(label)}</span>
-    </button>
+    <div className={`app ${detailOpen ? 'has-detail' : ''}`}>
+      {areaChecked && (
+        <MapView listings={visible} selectedId={selectedId} onSelect={select} tiles={tiles} dark={dark} lang={lang} locateSignal={locateSignal} />
+      )}
+      <div className="overlay-top">
+        <TopBar online={online} offlineReady={!!saved} onMenu={() => setMenuOpen(true)} />
+        <CategoryChips value={category} onChange={(c) => (setCategory(c), select(null))} counts={counts} />
+      </div>
+      <Carousel listings={visible} selectedId={selectedId} onOpen={select} onLocate={() => setLocateSignal((n) => n + 1)} />
+      <DetailSheet listing={detailOpen ? selected : null} online={online} onClose={() => setDetailOpen(false)} />
+      <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} saved={saved} progress={progress} error={saveError} onSave={save} onRemove={remove} />
+    </div>
   );
 }

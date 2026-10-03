@@ -1,9 +1,0 @@
-optimum[exporters,onnxruntime]
-transformers
-sentencepiece
-onnxruntime
-sentence-transformers
-datasets
-scikit-learn
-sacrebleu
-jiwer

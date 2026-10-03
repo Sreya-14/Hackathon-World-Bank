@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Build the app for GitHub Pages and push the built files to the gh-pages branch.
 # Only app/dist is pushed; source branches are untouched.
-#   Usage:  scripts/deploy-pages.sh            (mock engine)
-#           ENGINE=real scripts/deploy-pages.sh (real models, once the Engine track lands)
+#   Usage:  scripts/deploy-pages.sh
+#           VITE_API_URL=https://<backend> scripts/deploy-pages.sh   (live listings instead of samples)
 set -euo pipefail
 
 if [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 20 ]; then
@@ -13,10 +13,9 @@ fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE_URL="$(git -C "$ROOT" remote get-url origin)"
 REPO="$(basename -s .git "$REMOTE_URL")"
-MODE_FLAG=$([ "${ENGINE:-mock}" = real ] && echo "--mode real" || echo "")
 
 cd "$ROOT/app"
-BASE_PATH="/$REPO/" npx vite build $MODE_FLAG
+BASE_PATH="/$REPO/" npx vite build
 
 # GitHub Pages has no SPA fallback: serve the app for unknown paths (e.g. the share target).
 cp dist/index.html dist/404.html

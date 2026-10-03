@@ -1,0 +1,81 @@
+{
+  "type": "FeatureCollection",
+  "note": "SAMPLE DATA for the demo map. Not real vendors; contact is disabled in the app.",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [76.0833, 11.6087] },
+      "properties": {
+        "id": 101, "category": "tour",
+        "title": { "en": "Coffee plantation walk near Kalpetta", "de": "Kaffeeplantagen-Spaziergang bei Kalpetta" },
+        "description": {
+          "en": "See how coffee and pepper grow on a family farm, then share a fresh cup with the hosts.",
+          "de": "Sehen Sie, wie Kaffee und Pfeffer auf einem Familienhof wachsen, und trinken Sie danach eine frische Tasse mit den Gastgebern."
+        },
+        "price": "₹500 per person", "hours": "9:00–12:00", "photo_url": null,
+        "privacy": "area", "radius_m": 200, "verified": true, "met_count": 12,
+        "days_since_checkin": 0.2, "seed": true, "updated_at": "2026-10-03T08:00:00+00:00", "whatsapp_url": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [76.1338, 11.5826] },
+      "properties": {
+        "id": 102, "category": "craft",
+        "title": { "en": "Bamboo craft workshop", "de": "Bambus-Handwerkskurs" },
+        "description": {
+          "en": "Watch local artisans weave bamboo and try making a small basket yourself.",
+          "de": "Schauen Sie lokalen Kunsthandwerkern beim Bambusflechten zu und flechten Sie selbst einen kleinen Korb."
+        },
+        "price": "₹300 per person", "hours": null, "photo_url": null,
+        "privacy": "exact", "radius_m": null, "verified": false, "met_count": 4,
+        "days_since_checkin": 0.6, "seed": true, "updated_at": "2026-10-03T06:00:00+00:00", "whatsapp_url": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [76.138, 11.556] },
+      "properties": {
+        "id": 103, "category": "food",
+        "title": { "en": "Spice garden and home-cooked lunch", "de": "Gewürzgarten und hausgemachtes Mittagessen" },
+        "description": {
+          "en": "A short walk through a spice garden followed by a Kerala lunch on a banana leaf.",
+          "de": "Ein kurzer Spaziergang durch einen Gewürzgarten, danach ein Kerala-Mittagessen auf einem Bananenblatt."
+        },
+        "price": null, "hours": "12:00–14:00", "photo_url": null,
+        "privacy": "meeting", "radius_m": null, "verified": true, "met_count": 7,
+        "days_since_checkin": 3, "seed": true, "updated_at": "2026-09-30T09:00:00+00:00", "whatsapp_url": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [76.2621, 11.6651] },
+      "properties": {
+        "id": 104, "category": "textile",
+        "title": { "en": "Handloom weaving visit", "de": "Besuch einer Handweberei" },
+        "description": {
+          "en": "Visit a small handloom unit and see cotton cloth being woven by hand.",
+          "de": "Besuchen Sie eine kleine Handweberei und sehen Sie, wie Baumwollstoff von Hand gewebt wird."
+        },
+        "price": null, "hours": null, "photo_url": null,
+        "privacy": "area", "radius_m": 200, "verified": false, "met_count": 0,
+        "days_since_checkin": 9, "seed": true, "updated_at": "2026-09-24T09:00:00+00:00", "whatsapp_url": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [76.0405, 11.5915] },
+      "properties": {
+        "id": 105, "category": "experience",
+        "title": { "en": "Sunrise tea with a farming family", "de": "Tee bei Sonnenaufgang mit einer Bauernfamilie" },
+        "description": {
+          "en": "Watch the mist lift over the hills with a cup of tea and stories about farm life.",
+          "de": "Beobachten Sie bei einer Tasse Tee, wie sich der Nebel über den Hügeln lichtet, und hören Sie Geschichten vom Leben auf dem Hof."
+        },
+        "price": "₹250 per person", "hours": "6:00–7:30", "photo_url": null,
+        "privacy": "meeting", "radius_m": null, "verified": false, "met_count": 2,
+        "days_since_checkin": 1.4, "seed": true, "updated_at": "2026-10-02T05:00:00+00:00", "whatsapp_url": null
+      }
+    }
+  ]
+}

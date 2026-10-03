@@ -1,5 +1,5 @@
 {
-  "name": "noor-assistant",
+  "name": "porchlight",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,17 +8,16 @@
   },
   "scripts": {
     "dev": "vite",
-    "dev:real": "vite --mode real",
     "build": "tsc -b && vite build",
-    "build:real": "tsc -b && vite build --mode real",
     "preview": "vite preview --host",
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.0.0",
-    "chrono-node": "^2.7.0",
+    "@protomaps/basemaps": "^5.7.2",
     "dexie": "^4.0.0",
     "dexie-react-hooks": "^1.1.7",
+    "maplibre-gl": "^5.24.0",
+    "pmtiles": "^4.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
