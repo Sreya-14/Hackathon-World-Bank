@@ -88,6 +88,17 @@ def with_digits(text: str) -> str:
     return _EN_RUN.sub(value, text)
 
 
+def drop_ungrounded_sentences(text: str, source: str) -> str:
+    """Remove sentences whose numbers are not in `source`.
+
+    The small model adds things like "Duration: 3 hours" when she said "from 9 to 12",
+    despite being told not to calculate. Removing that sentence keeps the rest of an
+    otherwise good description; the invented number never reaches a tourist.
+    """
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    return ' '.join(s for s in sentences if not ungrounded(s, source)).strip()
+
+
 def ungrounded(claimed: str, source: str) -> set[float]:
     """Numbers in `claimed` that do not appear in `source`."""
     return numbers(claimed) - numbers(source)

@@ -4,7 +4,7 @@
     python -m eval.asr_fleurs --model vrclc/Whisper-small-Malayalam --n 958
 
 FLEURS is clean read speech, so real voice notes (outdoors, phone mic) will do worse.
-Data: ml/.cache/fleurs/ml_in/{test.tsv,test/*.wav} (google/fleurs, CC-BY-4.0).
+Data: <LANTERN_CACHE_DIR>/fleurs/ml_in/{test.tsv,test/*.wav} (google/fleurs, CC-BY-4.0).
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ import jiwer
 
 from pipeline import asr, config
 
-FLEURS = config.ML / '.cache' / 'fleurs' / 'ml_in'
+FLEURS = config.CACHE_DIR / 'fleurs' / 'ml_in'
 RESULTS = config.ML / 'eval' / 'results'
 
 
@@ -46,7 +46,9 @@ def load(n: int) -> list[tuple[Path, str]]:
 
 def run(model_id: str, clips: list[tuple[Path, str]]) -> dict:
     refs, hyps, confs, secs = [], [], [], []
-    for wav, ref in clips:
+    for i, (wav, ref) in enumerate(clips, 1):
+        if i % 10 == 0:
+            print(f'  {model_id}: {i}/{len(clips)} clips', flush=True)
         start = time.perf_counter()
         t = asr.transcribe(str(wav), model_id)
         secs.append(time.perf_counter() - start)

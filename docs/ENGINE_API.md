@@ -6,13 +6,25 @@ Types: [`ml/pipeline/schema.py`](../ml/pipeline/schema.py). The tourist app's si
 
 ## Setup
 
+Keep the environment and models **outside** OneDrive/Dropbox and outside the repo: they are several GB and tens of thousands of files, which sync tools and GitHub Desktop choke on. `LANTERN_CACHE_DIR` sets where models and test data go (default `ml/.cache`).
+
 ```bash
+# Windows example; on Linux/macOS use bin/ instead of Scripts/
+python -m venv C:/Users/<you>/lantern-ml/venv
+set LANTERN_CACHE_DIR=C:/Users/<you>/lantern-ml/cache        # PowerShell: $env:LANTERN_CACHE_DIR = "..."
+C:/Users/<you>/lantern-ml/venv/Scripts/pip install torch --index-url https://download.pytorch.org/whl/cpu
+C:/Users/<you>/lantern-ml/venv/Scripts/pip install -r ml/requirements-pipeline.txt -r server/requirements.txt --prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 cd ml
-python -m venv .venv-pipeline
-.venv-pipeline/Scripts/pip install torch --index-url https://download.pytorch.org/whl/cpu   # bin/ on Linux
-.venv-pipeline/Scripts/pip install -r requirements-pipeline.txt --prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
-.venv-pipeline/Scripts/python -m pipeline.models        # downloads + converts models into ml/.cache/ (~2.2 GB, once)
-.venv-pipeline/Scripts/python -m pipeline voice.ogg     # try one voice note, prints the result as JSON
+C:/Users/<you>/lantern-ml/venv/Scripts/python -m pipeline.models      # download + convert models (~2.2 GB, once)
+C:/Users/<you>/lantern-ml/venv/Scripts/python -m pipeline voice.ogg   # one voice note → result as JSON
+```
+
+Evaluation (results go to `ml/eval/results/`):
+
+```bash
+python -m eval.asr_fleurs --model vrclc/Whisper-small-Malayalam --n 150   # speech-to-text error rate (FLEURS Malayalam)
+python -m eval.listing_eval                                              # confidently-wrong rate on labelled descriptions
+python -m eval.malayalam_checklist                                       # regenerate docs/MALAYALAM_CHECK.md
 ```
 
 ## Calling it
@@ -72,4 +84,6 @@ Location, privacy, photo, check-ins, `verified` and `met_count` come from the bo
 
 - Speech to text: ~10% character error rate on FLEURS Malayalam (clean read speech). Outdoor voice notes will do worse.
 - Place names outside the list in `ml/pipeline/places.py` can be mistranslated (Edakkal → "gravel cave"). Add the operator's area to that list.
-- The read-back voice (MMS-TTS) is licensed CC-BY-NC-4.0: fine for this entry, but a commercial version needs a different voice.
+- The translator (NLLB-200) and the read-back voice (MMS-TTS) are both licensed CC-BY-NC-4.0: fine for this entry, but a commercial version needs different models. The speech-to-text fine-tune and Qwen2.5 are Apache-2.0.
+- Translation errors pass through ("Kerala meals served" → "Kerala will be handed over to my house"). Numbers are checked automatically; other invented details are not, which is why the host approves the Malayalam read-back.
+- Measured results (speech-to-text error rate, confidently-wrong rate, speed): [`ml/eval/results.md`](../ml/eval/results.md).

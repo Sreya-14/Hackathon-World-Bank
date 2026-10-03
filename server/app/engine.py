@@ -64,6 +64,15 @@ def warm_up() -> None:
         import pipeline
 
         pipeline.warm_up()
+        # Render every prompt's audio now (cached on disk by text): made on first send, the
+        # long welcome takes ~20 s on CPU, past Twilio's 15 s webhook timeout.
+        from .prompts import PROMPTS
+
+        for text, _ in PROMPTS.values():
+            try:
+                speak(text)
+            except Exception:
+                log.exception("could not pre-render a prompt clip")
 
 
 # --- Running the pipeline ---------------------------------------------------------------

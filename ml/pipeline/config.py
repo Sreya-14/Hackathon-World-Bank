@@ -3,7 +3,10 @@ import os
 from pathlib import Path
 
 ML = Path(__file__).resolve().parent.parent
-MODELS_DIR = ML / '.cache' / 'pipeline-models'
+# Models and test data (~5 GB). Keep them out of synced folders such as OneDrive:
+# set LANTERN_CACHE_DIR, e.g. C:/Users/<you>/lantern-ml/cache
+CACHE_DIR = Path(os.getenv('LANTERN_CACHE_DIR', str(ML / '.cache')))
+MODELS_DIR = CACHE_DIR / 'pipeline-models'
 
 # Physical cores; hyper-threads don't help these models.
 CPU_THREADS = max(1, (os.cpu_count() or 2) // 2)

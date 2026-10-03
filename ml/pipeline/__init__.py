@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from . import config
-from .grounding import ungrounded, with_digits
+from .grounding import drop_ungrounded_sentences, ungrounded, with_digits
 from .places import protect
 from .schema import Listing, ListingText, PipelineResult, ReviewReason, StageTiming
 
@@ -125,11 +125,19 @@ def _from_transcript(run: _Run, segments: list[str], out_dir: str | None) -> Pip
     if written is None:
         reasons.append('invalid_listing')
         return run.done()
+    if written == writer.NOT_AN_OFFER:  # small talk, news, a greeting: nothing to list
+        reasons.append('empty_listing')
+        return run.done()
     category, en = written
+    source = f'{result.transcript_en} {transcript}'
+    # Free text: drop just the sentence with an invented number ("Duration: 3 hours").
+    # Fact fields (price, hours...) are not trimmed: an invented one still holds the listing.
+    en.title = drop_ungrounded_sentences(en.title, source)
+    en.description = drop_ungrounded_sentences(en.description, source)
     result.listing = Listing(category=category, text={'en': en})
     if not en.title or not en.description:
         reasons.append('empty_listing')
-    if ungrounded(_all_text(en), f'{result.transcript_en} {transcript}'):
+    if ungrounded(_all_text(en), source):
         reasons.append('ungrounded_fact')
     if reasons:
         return run.done()
