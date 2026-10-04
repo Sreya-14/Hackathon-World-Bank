@@ -27,13 +27,19 @@ def _client():
     return _twilio
 
 
+# Served at /media. Not uploads/: hosts' original voice notes and photos are never public.
+PUBLIC_MEDIA = ("photos", "prompts", "readback")
+
+
 def media_url(path: str | Path | None) -> str | None:
-    """Public URL for a file under MEDIA_DIR; None for anything else (never serve arbitrary paths)."""
+    """Public URL for a file in a PUBLIC_MEDIA folder; None for anything else (never serve arbitrary paths)."""
     if not path:
         return None
     try:
         rel = Path(path).resolve().relative_to(settings.media_dir.resolve())
     except ValueError:
+        return None
+    if rel.parts[0] not in PUBLIC_MEDIA:
         return None
     return f"{settings.public_base_url}/media/{rel.as_posix()}"
 

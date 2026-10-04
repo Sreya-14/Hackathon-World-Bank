@@ -13,7 +13,7 @@ import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from . import channels, db, engine
+from . import channels, db, engine, retention
 from .config import settings
 from .photo import check_photo
 from .prompts import LANGUAGE_COMMANDS, en, ml, parse_language
@@ -87,6 +87,12 @@ def handle(msg: Inbound) -> None:
         except Exception:
             log.exception("bot failed for %s", msg.phone)
             channels.send(msg.phone, "⚠️ Sorry, something went wrong on our side. Please try again.")
+        finally:
+            # Whatever the bot didn't keep (a rejected photo, a voice note sent while busy) is deleted now.
+            v = db.get_or_create_vendor(msg.phone)
+            for path, _ in msg.media:
+                if path not in (v["photo_path"], v["audio_path"]):
+                    retention.discard(path)
 
 
 def _handle(msg: Inbound) -> None:
@@ -95,8 +101,11 @@ def _handle(msg: Inbound) -> None:
     cmd = _norm(msg.text)
 
     if cmd in RESTART:
+        for path in (v["photo_path"], v["audio_path"]):
+            retention.discard(path)
+        retention.discard_readback(v["readback_audio"])
         db.update_vendor(v["id"], state="NEW", photo_path=None, audio_path=None, typed_text=None, draft_json=None,
-                         review_reasons=None, voice_lang=None, consented=0)
+                         readback_audio=None, review_reasons=None, voice_lang=None, consented=0)
         channels.send_language_choice(msg.phone)
         return
     if cmd in LANGUAGE_COMMANDS:
@@ -146,7 +155,8 @@ def _handle(msg: Inbound) -> None:
         if cmd in APPROVE:
             _approve(v)
         elif cmd in REDO:
-            db.update_vendor(v["id"], state="NEW", audio_path=None, typed_text=None)
+            retention.discard_readback(v["readback_audio"])
+            db.update_vendor(v["id"], state="NEW", audio_path=None, typed_text=None, readback_audio=None)
             say("rerecord")
         else:
             say("approve_hint")
@@ -192,10 +202,13 @@ def _collect(v: dict, msg: Inbound) -> None:
     if msg.photo:
         check = check_photo(msg.photo)
         if not check.ok:
+            retention.discard(v["photo_path"])
             db.update_vendor(v["id"], photo_path=None, state="LIVE" if v["state"] == "LIVE" else "NEW")
             channels.send_prompt(msg.phone, f"retake_{check.problem}")
             return
-        updates["photo_path"] = msg.photo
+        # Kept without metadata (a phone photo's EXIF holds the exact GPS spot); the old one goes.
+        retention.discard(v["photo_path"])
+        updates["photo_path"] = str(retention.clean_photo(msg.photo))
     if msg.audio:
         updates.update(audio_path=msg.audio, typed_text=None)
     elif msg.typed_text.strip():
@@ -224,6 +237,8 @@ def _start_pipeline(v: dict) -> None:
         except Exception:
             log.exception("pipeline crashed for vendor %s", vid)
             result = None
+        finally:
+            retention.discard(audio)  # the voice note is deleted once transcribed; the text is kept
         with _locks[phone]:
             _apply_result(vid, was_live, result)
 
@@ -253,11 +268,13 @@ def _apply_result(vendor_id: int, was_live: bool, result) -> None:
         # The pipeline reads back in Malayalam; English hosts hear the English listing instead.
         readback = english_readback(t)
         audio = engine.speak(readback, "en")
+        retention.discard_readback(result.readback_wav)  # the unused Malayalam one
     else:
         readback = result.readback_text
         audio = engine.to_ogg(result.readback_wav) if result.readback_wav else None
+    retention.discard_readback(v["readback_audio"])  # an earlier draft's
     db.update_vendor(
-        vendor_id, state="AWAITING_APPROVAL", draft_json=result.listing.model_dump_json(),
+        vendor_id, state="AWAITING_APPROVAL", draft_json=result.listing.model_dump_json(), audio_path=None, typed_text=None,
         readback_text=readback, readback_audio=str(audio) if audio else None, review_reasons=None, **fields,
     )
     summary = listing_summary(t)
@@ -290,7 +307,8 @@ def english_readback(t) -> str:
 
 
 def _approve(v: dict) -> None:
-    v = db.update_vendor(v["id"], listing_json=v["draft_json"], draft_json=None)
+    retention.discard_readback(v["readback_audio"])
+    v = db.update_vendor(v["id"], listing_json=v["draft_json"], draft_json=None, readback_audio=None)
     if v["lat"] is not None:
         # Updating an existing listing: keep the location and privacy she already chose.
         db.update_vendor(v["id"], state="LIVE", live=1, hidden=0)

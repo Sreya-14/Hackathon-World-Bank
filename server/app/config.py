@@ -75,4 +75,5 @@ class Settings:
 
 
 settings = Settings()
-settings.media_dir.mkdir(parents=True, exist_ok=True)
+for _sub in ("uploads", "photos", "prompts", "readback"):
+    (settings.media_dir / _sub).mkdir(parents=True, exist_ok=True)

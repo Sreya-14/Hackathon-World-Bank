@@ -13,10 +13,12 @@ PROMPTS: dict[str, tuple[str, str]] = {
     "welcome": (
         "നമസ്കാരം! ലാന്റേണിലേക്ക് സ്വാഗതം. നിങ്ങളുടെ ടൂറിന്റെയോ ഉൽപ്പന്നത്തിന്റെയോ ഒരു ഫോട്ടോയും, അതിനെക്കുറിച്ച് ഒരു വോയ്‌സ് നോട്ടും അയയ്ക്കുക. "
         "നിങ്ങൾ പറയുന്നതിൽ നിന്ന് ഞങ്ങൾ ഒരു ലിസ്റ്റിംഗ് ഉണ്ടാക്കും. നിങ്ങൾ അംഗീകരിച്ചാൽ മാത്രമേ അത് ടൂറിസ്റ്റുകളുടെ മാപ്പിൽ കാണിക്കൂ. "
-        "ഒരു ടൂറിസ്റ്റ് ബന്ധപ്പെടാൻ ടാപ്പ് ചെയ്യുമ്പോൾ മാത്രമേ നിങ്ങളുടെ ഫോൺ നമ്പർ കാണിക്കൂ. എപ്പോൾ വേണമെങ്കിലും ❌ അയച്ച് ലിസ്റ്റിംഗ് മറയ്ക്കാം.",
+        "നിങ്ങളുടെ വോയ്‌സ് നോട്ട് എഴുതിയെടുത്ത ഉടൻ ഡിലീറ്റ് ചെയ്യും. ഫോട്ടോ, അതിലെ ലൊക്കേഷൻ വിവരങ്ങൾ നീക്കം ചെയ്ത ശേഷമേ സൂക്ഷിക്കൂ. "
+        "ആപ്പ് ഉപയോഗിക്കുന്ന ടൂറിസ്റ്റുകൾക്ക് നിങ്ങളെ ബന്ധപ്പെടാൻ നിങ്ങളുടെ ഫോൺ നമ്പർ കാണാം. എപ്പോൾ വേണമെങ്കിലും ❌ അയച്ച് ലിസ്റ്റിംഗ് മറയ്ക്കാം.",
         "Hello! Welcome to Lantern. Send a photo of your tour or product and a voice note about it. "
         "We'll make a listing from what you say; it appears on the tourist map only after you approve it. "
-        "Your phone number is shown only when a tourist taps to contact you. Send ❌ any time to hide your listing.",
+        "Your voice note is deleted as soon as it's written down, and your photo is kept only with its location data removed. "
+        "Tourists using the app can see your phone number so they can message you. Send ❌ any time to hide your listing.",
     ),
     "share_contact": (
         "ആദ്യം, താഴെയുള്ള ബട്ടൺ അമർത്തി നിങ്ങളുടെ ഫോൺ നമ്പർ പങ്കിടുക. ടൂറിസ്റ്റുകൾ ഈ നമ്പറിൽ വാട്ട്‌സ്ആപ്പ് വഴി നിങ്ങളെ ബന്ധപ്പെടും.",

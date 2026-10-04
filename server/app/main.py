@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import bot, channels, db, engine, telegram
+from . import bot, channels, db, engine, retention, telegram
 from .config import settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -29,6 +29,7 @@ STATIC = Path(__file__).parent / "static"
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     db.db.init()
+    retention.sweep()
     log.info("ML: %s | WhatsApp: %s | DB: %s", "MOCK" if settings.mock_ai else f"real ({settings.ml_dir})",
              "on" if settings.twilio_enabled else "off (vendors use /host)", "postgres" if db.db.is_pg else "sqlite")
     if not settings.mock_ai:
@@ -45,7 +46,8 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Lantern", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins), allow_methods=["*"], allow_headers=["*"])
-app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")
+for _folder in channels.PUBLIC_MEDIA:  # not uploads/: originals are never served
+    app.mount(f"/media/{_folder}", StaticFiles(directory=settings.media_dir / _folder), name=f"media-{_folder}")
 
 
 @app.get("/health")

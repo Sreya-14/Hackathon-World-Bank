@@ -68,7 +68,19 @@ MOCK_AI=false .venv/bin/python -m scripts.smoke_real    # one run through the re
 
 - **Host approval:** nothing goes live until the host hears the read-back and sends 👍.
 - **"Not sure":** unclear audio, wrong language, lost translation or an invented fact (`needs_review`) publishes nothing and asks the host to say it again.
-- **Location privacy:** exact spot, a ~200 m area (snapped before storing), or a meeting point. The phone number is only shared when a tourist taps "I'm interested". ❌ hides a listing at any time, and three reports hide it until a partner checks.
+- **Location privacy:** exact spot, a ~200 m area (snapped before storing), or a meeting point. ❌ hides a listing at any time, and three reports hide it until a partner checks.
+- **Phone number:** the contact links (with the host's number) are in the offline download (`/api/bundle`), so anyone using the app can see them. The welcome message tells hosts this.
+- **What we keep** (stated in the bot's welcome message; code in [`server/app/retention.py`](server/app/retention.py)):
+
+  | What the host sends | Kept for | What stays |
+  |---|---|---|
+  | Voice note | Until the pipeline has transcribed it (a minute or two) | The transcript and the listing text |
+  | Photo | The original is deleted on arrival | A re-encoded copy (max 1600 px) with no EXIF, so no GPS position, camera or time. It's the listing photo, deleted when the host sends a new one or restarts |
+  | Read-back audio (synthetic voice) | Until the host approves, redoes or restarts | Nothing |
+  | Anything else (a rejected photo, a voice note sent while busy) | Deleted once the message is handled | Nothing |
+  | Location | Exact only if the host picks "exact"; otherwise snapped to ~200 m or the meeting point | |
+
+  Hosts' original uploads are never served: only `photos/`, `prompts/` and `readback/` are public under `/media`. On startup the server applies the same rules to anything left over from before. Telegram and Twilio keep their own copy of messages under their own policies; the server doesn't control those.
 - **Offline:** the app shell is cached, and "Save Wayanad for offline" stores the map (6.6 MB) and listings on the phone.
 
 ## Data

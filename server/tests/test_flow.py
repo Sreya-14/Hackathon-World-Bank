@@ -155,3 +155,42 @@ def test_language_choice_drives_text_voice_and_readback(sharp_photo, voice_note)
     send(text="restart")
     v = db.get_or_create_vendor(PHONE)
     assert v["voice_lang"] is None and v["state"] == "NEW" and "Which language" in texts()[-1]
+
+
+def test_voice_notes_and_photo_metadata_are_not_kept(sharp_photo, voice_note):
+    """The retention rule in the welcome message: voice deleted once transcribed, photo kept without EXIF."""
+    from pathlib import Path
+
+    from PIL import Image
+
+    from app import channels, retention
+
+    # A phone photo whose EXIF carries a GPS position, uploaded the way Telegram/WhatsApp/web save it.
+    gps_photo = Path(sharp_photo).with_name("gps.jpg")
+    exif = Image.Exif()
+    exif[0x8825] = {1: "N", 2: (11.0, 36.0, 30.6), 3: "E", 4: (76.0, 4.0, 58.9)}  # GPSInfo
+    Image.open(sharp_photo).save(gps_photo, exif=exif)
+    assert Image.open(gps_photo).getexif().get_ifd(0x8825)
+    photo = str(channels.save_upload(gps_photo.read_bytes(), "image/jpeg", PHONE))
+    audio = str(channels.save_upload(Path(voice_note).read_bytes(), "audio/ogg", PHONE))
+
+    v = submit(photo, audio)
+    assert v["state"] == "AWAITING_APPROVAL"
+    assert not Path(audio).exists() and v["audio_path"] is None  # transcribed, then deleted
+    assert not Path(photo).exists()  # the original upload is gone
+    kept = Path(v["photo_path"])
+    assert kept.parent == retention.PHOTOS and not Image.open(kept).getexif()  # no GPS, no camera, no time
+    readback = Path(v["readback_audio"])
+    assert readback.exists()
+
+    v = send(text="👍")
+    assert not readback.exists() and v["readback_audio"] is None  # deleted once approved
+    assert channels.media_url(kept).endswith(f"/media/photos/{kept.name}")
+    assert channels.media_url(photo) is None  # uploads are never public
+
+    # A photo the bot doesn't use (here: sent while it waits for a location) isn't kept either.
+    stray = str(channels.save_upload(Path(sharp_photo).read_bytes(), "image/jpeg", PHONE))
+    send(media=[(stray, "image/jpeg")])
+    assert not Path(stray).exists() and kept.exists()
+    v = send(text="restart")  # starting over removes the listing photo too
+    assert v["photo_path"] is None and not kept.exists() and not any(retention.UPLOADS.rglob("*.*"))
