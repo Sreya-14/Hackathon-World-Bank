@@ -2,9 +2,10 @@
 
 Findings that shaped this (FLEURS ml, see eval/asr_fleurs.py):
 - Vanilla whisper-small writes romanised Malayalam; the Malayalam fine-tune is needed.
-- Malayalam takes ~16 tokens per second of speech, and Whisper decodes at most 224
-  tokens per window, so 30 s windows get cut off mid-sentence. 10 s windows (split at
-  pauses by VAD) fit, and the batched pipeline decodes them in parallel.
+- Malayalam takes 16 (FLEURS) to 31 (real voice notes) tokens per second of speech, far
+  more than English. 10 s windows split at pauses by VAD, with the per-window token cap
+  raised (see _model), keep whole sentences; 15 s windows sent the decoder into repetition
+  loops. The batched pipeline decodes the windows in parallel.
 - The fine-tune's language detection is broken (calls Malayalam Kannada), so
   "is this Malayalam?" is checked on the transcript's script instead.
 """
@@ -32,6 +33,11 @@ class Transcript:
 def _model(model_id: str = config.ASR_MODEL):
     from faster_whisper import BatchedInferencePipeline, WhisperModel
     model = WhisperModel(str(asr_dir(model_id)), device='cpu', compute_type='int8', cpu_threads=config.CPU_THREADS)
+    # CTranslate2 decodes at most max_length / 2 tokens per window (Whisper's "half the
+    # context" rule): 224 by default. Real speech reaches ~31 tokens/s in Malayalam, so a
+    # 10 s window got cut mid-word and the price/hours at the end were lost. 888 lets a
+    # window use the decoder's full 448 positions.
+    model.max_length = 888
     return BatchedInferencePipeline(model)
 
 

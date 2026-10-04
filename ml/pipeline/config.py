@@ -11,16 +11,19 @@ MODELS_DIR = CACHE_DIR / 'pipeline-models'
 # Physical cores; hyper-threads don't help these models.
 CPU_THREADS = max(1, (os.cpu_count() or 2) // 2)
 
-# Speech to text: a Whisper small fine-tuned on Malayalam, converted to CTranslate2 int8.
-# Candidates are compared on FLEURS ml in eval; vanilla whisper-small is the baseline.
+# Speech to text: Whisper fine-tuned on Malayalam, converted to CTranslate2 int8.
+# On real phone voice notes, medium got 7%/12% character errors vs small's 19%/26% (and
+# small's errors became "potato tree", "fortress" in the listing), at ~2× the time.
+# LANTERN_ASR_MODEL=vrclc/Whisper-small-Malayalam is the faster fallback.
 ASR_CANDIDATES = [
+    'thennal/whisper-medium-ml',
     'vrclc/Whisper-small-Malayalam',
     'kavyamanohar/whisper-small-malayalam',
     'openai/whisper-small',
 ]
-ASR_MODEL = 'vrclc/Whisper-small-Malayalam'
+ASR_MODEL = os.getenv('LANTERN_ASR_MODEL', 'thennal/whisper-medium-ml')
 ASR_LANGUAGE = 'ml'
-# Whisper decodes at most 224 tokens per window; Malayalam needs ~16 tokens/s of speech.
+# Windows split at pauses; longer ones send the decoder into repetition loops (see asr.py).
 ASR_CHUNK_SECONDS = 10
 
 # Translation: one NLLB model covers Malayalam → English and English → German.

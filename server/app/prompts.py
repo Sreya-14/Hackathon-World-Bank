@@ -17,8 +17,8 @@ PROMPTS: dict[str, tuple[str, str]] = {
     "need_photo": ("നന്ദി! ഇനി ഒരു ഫോട്ടോ കൂടി അയയ്ക്കുക.", "Thanks! Now please send a photo too."),
     "need_voice": ("നന്ദി! ഇനി നിങ്ങളുടെ ടൂറിനെക്കുറിച്ച് ഒരു വോയ്‌സ് നോട്ട് അയയ്ക്കുക.", "Thanks! Now send a voice note about your tour."),
     "processing": (
-        "നന്ദി! ഞാൻ നിങ്ങളുടെ ലിസ്റ്റിംഗ് തയ്യാറാക്കുകയാണ്. ഒന്നോ രണ്ടോ മിനിറ്റ് എടുത്തേക്കാം.",
-        "Thanks! I'm preparing your listing. It can take a minute or two.",
+        "നന്ദി! ഞാൻ നിങ്ങളുടെ ലിസ്റ്റിംഗ് തയ്യാറാക്കുകയാണ്. രണ്ടോ മൂന്നോ മിനിറ്റ് എടുത്തേക്കാം.",
+        "Thanks! I'm preparing your listing. It can take two or three minutes.",
     ),
     "still_processing": ("ഇപ്പോഴും തയ്യാറാക്കുകയാണ്, ഒരു നിമിഷം.", "Still working on it, one moment."),
     "retake_blurry": ("ഫോട്ടോ വ്യക്തമല്ല. ദയവായി ഒന്നുകൂടി എടുത്ത് അയയ്ക്കുക.", "The photo isn't clear. Please take it again and send it."),

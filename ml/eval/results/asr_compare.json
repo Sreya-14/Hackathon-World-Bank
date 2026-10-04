@@ -1,0 +1,12 @@
+{
+  "note": "Measured 2026-10-04 on a laptop CPU (Ryzen 7 5700U, 8 threads). Real voice notes: two WhatsApp voice notes (18 s each) by a team member reading scripts 1 and 2; CER is against the script, so approximate. FLEURS: every 5th test row, 30 clips. Whisper-medium-ml and MMS-1B were trained partly on FLEURS train (test split held out).",
+  "models": [
+    {"model": "vrclc/Whisper-small-Malayalam", "voice_note_cer": [0.19, 0.26], "fleurs30_cer": 0.105, "fleurs30_wer": 0.411, "seconds_per_note": [49, 41], "licence": "Apache-2.0"},
+    {"model": "facebook/mms-1b-all (adapter mal)", "voice_note_cer": [0.19, 0.15], "fleurs30_cer": 0.043, "fleurs30_wer": 0.294, "seconds_per_note": [34, 32], "licence": "CC-BY-NC-4.0"},
+    {"model": "thennal/whisper-medium-ml", "voice_note_cer": [0.07, 0.12], "fleurs30_cer": 0.046, "fleurs30_wer": 0.260, "seconds_per_note": [97, 84], "licence": "Apache-2.0"}
+  ],
+  "listing_effect": {
+    "vrclc/Whisper-small-Malayalam": ["Potato Tree Garden Tour ... on Sundays", "Crafting a Small Fortress with Bamboo and Mandarin (no price)"],
+    "thennal/whisper-medium-ml": ["Coffee Plantation Tour, Kalpetta, 500 rupees per person, daily 9:00-12:00", "Baskets and Lamps from Bamboo in Mananthavady, 1 hour, 300 rupees per person"]
+  }
+}

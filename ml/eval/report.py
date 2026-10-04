@@ -18,7 +18,7 @@ RESULTS = config.ML / 'eval' / 'results'
 OUT = config.ML / 'eval' / 'results.md'
 
 MODELS = [
-    ('Speech to text', config.ASR_MODEL, 'Whisper small fine-tuned on Malayalam, CTranslate2 int8', 'Apache-2.0', asr_dir),
+    ('Speech to text', config.ASR_MODEL, 'Whisper fine-tuned on Malayalam, CTranslate2 int8', 'Apache-2.0', asr_dir),
     ('Translation', config.NLLB_MODEL, 'ml→en, en→de, en→ml; CTranslate2 int8', 'CC-BY-NC-4.0 (non-commercial)', nllb_dir),
     ('Listing writer', f'{config.LLM_REPO} ({config.LLM_FILE})', 'llama.cpp, JSON schema', 'Apache-2.0', llm_path),
     ('Read-back voice', config.TTS_MODEL, 'VITS', 'CC-BY-NC-4.0 (non-commercial)', tts_dir),
@@ -56,6 +56,20 @@ def main() -> None:
               '(script, translation length, offer check, numbers), not on confidence.',
               '- Vanilla `openai/whisper-small` writes Malayalam in Latin letters ("Paa Amm Oil, anna dalida maya…") '
               'and is unusable for this; spot-checked on FLEURS clips, not scored.', '']
+
+    cmp = load('asr_compare.json')
+    if cmp:
+        lines += ['## Speech to text: real voice notes', '', cmp['note'], '',
+                  '| Model | Voice notes CER (vs script) | FLEURS 30 CER | Seconds per 18 s note | Licence |',
+                  '|---|---|---|---|---|']
+        for m in cmp['models']:
+            lines.append(f"| `{m['model']}` | {' / '.join(f'{c:.0%}' for c in m['voice_note_cer'])} | "
+                         f"{m['fleurs30_cer']:.1%} | {' / '.join(map(str, m['seconds_per_note']))} | {m['licence']} |")
+        lines += ['', 'What the listing writer made of each transcript:', '']
+        for model, listings in cmp['listing_effect'].items():
+            lines += [f'- `{model}`: ' + '; '.join(f'"{x}"' for x in listings)]
+        lines += ['', f'Chosen: `{config.ASR_MODEL}` (best on real speech; slower). '
+                      'Set `LANTERN_ASR_MODEL=vrclc/Whisper-small-Malayalam` for the faster fallback.', '']
 
     lines += ['## Listing: how often is it confidently wrong?', '',
               'Malayalam description (text) → listing, scored against labels in `eval/data/listing_cases.jsonl`: '

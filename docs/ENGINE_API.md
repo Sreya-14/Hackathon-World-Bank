@@ -1,6 +1,6 @@
 # Engine API: how the backend turns a voice note into a listing
 
-The engine (`ml/pipeline/`) takes Noor's Malayalam voice note and returns a draft listing in English and German, plus a Malayalam audio read-back for her to approve. It runs on the server's CPU with small local models (~2.2 GB). No API keys and no network calls at run time.
+The engine (`ml/pipeline/`) takes Noor's Malayalam voice note and returns a draft listing in English and German, plus a Malayalam audio read-back for her to approve. It runs on the server's CPU with small local models (~2.7 GB). No API keys and no network calls at run time.
 
 Types: [`ml/pipeline/schema.py`](../ml/pipeline/schema.py). The tourist app's side is in [`LISTINGS_API.md`](LISTINGS_API.md).
 
@@ -15,7 +15,7 @@ set LANTERN_CACHE_DIR=C:/Users/<you>/lantern-ml/cache        # PowerShell: $env:
 C:/Users/<you>/lantern-ml/venv/Scripts/pip install torch --index-url https://download.pytorch.org/whl/cpu
 C:/Users/<you>/lantern-ml/venv/Scripts/pip install -r ml/requirements-pipeline.txt -r server/requirements.txt --prefer-binary --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 cd ml
-C:/Users/<you>/lantern-ml/venv/Scripts/python -m pipeline.models      # download + convert models (~2.2 GB, once)
+C:/Users/<you>/lantern-ml/venv/Scripts/python -m pipeline.models      # download + convert models (~2.7 GB, once)
 C:/Users/<you>/lantern-ml/venv/Scripts/python -m pipeline voice.ogg   # one voice note → result as JSON
 ```
 
@@ -39,7 +39,7 @@ result.model_dump()                          # plain dict / JSON
 ```
 
 - One call at a time: the models use every CPU core. Put voice notes in a queue and process them in order.
-- It takes about a minute on a laptop CPU (speech to text ~20 s for a 20 s note, then ~55 s for the rest). WhatsApp is asynchronous, so send a short "got it, preparing your listing" clip first.
+- It takes 2–3 minutes for an 18 s voice note on a laptop CPU (speech to text 80–120 s with the default Whisper-medium, then ~60 s for the rest). WhatsApp is asynchronous, so send a short "got it, preparing your listing" clip first. `LANTERN_ASR_MODEL=vrclc/Whisper-small-Malayalam` halves the speech-to-text time but mishears much more on real voices (see `ml/eval/results.md`).
 
 ## What comes back
 

@@ -14,7 +14,7 @@ Host (WhatsApp or /host page)  →  server/  →  ml/pipeline (speech → listin
 |---|---|
 | `app/` | **Tourist app**: installable PWA (Vite + React + TypeScript, MapLibre + PMTiles, Dexie). Map of Wayanad, listings in EN/DE, WhatsApp contact, offline area download. |
 | `server/` | **Lantern server** (FastAPI): the host's bot over WhatsApp (Twilio) or the `/host` web page, a photo check, a job queue around the ML layer, the approve → location → privacy flow, and the public listings API. |
-| `ml/` | **ML layer**: Malayalam voice note → listing + read-back, with small local models (~2.2 GB). See [docs/ENGINE_API.md](docs/ENGINE_API.md). |
+| `ml/` | **ML layer**: Malayalam voice note → listing + read-back, with small local models (~2.7 GB). See [docs/ENGINE_API.md](docs/ENGINE_API.md). |
 | `docs/` | [LISTINGS_API.md](docs/LISTINGS_API.md) (server → app), [ENGINE_API.md](docs/ENGINE_API.md) (ML layer → server). |
 | `scripts/deploy-pages.sh` | Builds the tourist app and publishes it to GitHub Pages. |
 
@@ -38,7 +38,7 @@ Hosts open **http://localhost:8000/host**: send a photo, record (or type) a desc
 ```bash
 cd server
 CMAKE_ARGS="-DGGML_METAL=on" .venv/bin/pip install -r ../ml/requirements-pipeline.txt   # Metal flag: Apple Silicon only
-cd ../ml && ../server/.venv/bin/python -m pipeline.models                                 # ~2.2 GB, once
+cd ../ml && ../server/.venv/bin/python -m pipeline.models                                 # ~2.7 GB, once
 cd ../server && MOCK_AI=false .venv/bin/uvicorn app.main:app --port 8000
 ```
 

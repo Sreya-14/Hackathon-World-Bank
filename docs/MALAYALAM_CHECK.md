@@ -9,7 +9,7 @@ Every fixed Malayalam phrase the host reads or hears. A fluent speaker should ch
 | | `welcome` | നമസ്കാരം! ലാന്റേണിലേക്ക് സ്വാഗതം. നിങ്ങളുടെ ടൂറിന്റെയോ ഉൽപ്പന്നത്തിന്റെയോ ഒരു ഫോട്ടോയും, അതിനെക്കുറിച്ച് ഒരു വോയ്‌സ് നോട്ടും അയയ്ക്കുക. നിങ്ങൾ പറയുന്നതിൽ നിന്ന് ഞങ്ങൾ ഒരു ലിസ്റ്റിംഗ് ഉണ്ടാക്കും. നിങ്ങൾ അംഗീകരിച്ചാൽ മാത്രമേ അത് ടൂറിസ്റ്റുകളുടെ മാപ്പിൽ കാണിക്കൂ. ഒരു ടൂറിസ്റ്റ് ബന്ധപ്പെടാൻ ടാപ്പ് ചെയ്യുമ്പോൾ മാത്രമേ നിങ്ങളുടെ ഫോൺ നമ്പർ കാണിക്കൂ. എപ്പോൾ വേണമെങ്കിലും ❌ അയച്ച് ലിസ്റ്റിംഗ് മറയ്ക്കാം. | Hello! Welcome to Lantern. Send a photo of your tour or product and a voice note about it. We'll make a listing from what you say; it appears on the tourist map only after you approve it. Your phone number is shown only when a tourist taps to contact you. Send ❌ any time to hide your listing. |
 | | `need_photo` | നന്ദി! ഇനി ഒരു ഫോട്ടോ കൂടി അയയ്ക്കുക. | Thanks! Now please send a photo too. |
 | | `need_voice` | നന്ദി! ഇനി നിങ്ങളുടെ ടൂറിനെക്കുറിച്ച് ഒരു വോയ്‌സ് നോട്ട് അയയ്ക്കുക. | Thanks! Now send a voice note about your tour. |
-| | `processing` | നന്ദി! ഞാൻ നിങ്ങളുടെ ലിസ്റ്റിംഗ് തയ്യാറാക്കുകയാണ്. ഒന്നോ രണ്ടോ മിനിറ്റ് എടുത്തേക്കാം. | Thanks! I'm preparing your listing. It can take a minute or two. |
+| | `processing` | നന്ദി! ഞാൻ നിങ്ങളുടെ ലിസ്റ്റിംഗ് തയ്യാറാക്കുകയാണ്. രണ്ടോ മൂന്നോ മിനിറ്റ് എടുത്തേക്കാം. | Thanks! I'm preparing your listing. It can take two or three minutes. |
 | | `still_processing` | ഇപ്പോഴും തയ്യാറാക്കുകയാണ്, ഒരു നിമിഷം. | Still working on it, one moment. |
 | | `retake_blurry` | ഫോട്ടോ വ്യക്തമല്ല. ദയവായി ഒന്നുകൂടി എടുത്ത് അയയ്ക്കുക. | The photo isn't clear. Please take it again and send it. |
 | | `retake_dark` | ഫോട്ടോ വളരെ ഇരുണ്ടതാണ്. വെളിച്ചത്തിൽ ഒന്നുകൂടി എടുത്ത് അയയ്ക്കുക. | The photo is too dark. Please retake it in better light. |
