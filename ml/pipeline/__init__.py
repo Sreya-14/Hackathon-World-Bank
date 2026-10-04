@@ -5,6 +5,7 @@ looks unsure, the result is `needs_review` with reasons and nothing should be pu
 """
 from __future__ import annotations
 
+import re
 import tempfile
 import time
 import uuid
@@ -12,8 +13,8 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from . import config
-from .grounding import drop_ungrounded_sentences, ungrounded, with_digits
-from .places import protect
+from .grounding import drop_ungrounded_sentences, numbers, ungrounded, with_digits
+from .places import places_in, protect
 from .schema import Listing, ListingText, PipelineResult, ReviewReason, StageTiming
 
 __all__ = ['process_voice_note', 'process_transcript', 'warm_up', 'PipelineResult']
@@ -39,17 +40,33 @@ def _all_text(t: ListingText) -> str:
 
 def _translate_listing(t: ListingText, tgt: str) -> ListingText:
     from .translate import translate
-    tr = lambda s: translate(s, 'en', tgt) if s else None  # noqa: E731
+    tr = lambda s: translate(s, 'en', tgt).rstrip('.') if s else None  # noqa: E731  (short fields: no full stop)
     return ListingText(
-        title=tr(t.title) or '', description=tr(t.description) or '', price=tr(t.price), hours=tr(t.hours),
+        title=tr(t.title) or '', description=translate(t.description, 'en', tgt) if t.description else '', price=tr(t.price), hours=tr(t.hours),
         duration=tr(t.duration), includes=[tr(i) for i in t.includes], meeting_point=tr(t.meeting_point),
+        location=t.location,  # place names stay as they are
     )
+
+
+def _split_cost(description: str, price: str | None) -> tuple[str, str | None]:
+    """(service text, cost). A short sentence that only states the price becomes the cost,
+    as she said it ("Two thousand five hundred rupees a night" → "2500 rupees a night");
+    sentences that say more than the price stay in the service text."""
+    if not price:
+        return description, None
+    price_numbers = numbers(price)
+    sentences = re.split(r'(?<=[.!?])\s+', description)
+    is_cost = lambda s: bool(numbers(s)) and numbers(s) <= price_numbers and len(s.split()) <= 10  # noqa: E731
+    costs = [s for s in sentences if is_cost(s)]
+    service = ' '.join(s for s in sentences if not is_cost(s)).strip()
+    cost = with_digits(costs[0]).rstrip('.').strip() if len(costs) == 1 else None
+    return service, cost
 
 
 def _readback_english(t: ListingText) -> str:
     parts = [f'{t.title}.', t.description]
-    for label, value in [('Price', t.price), ('Hours', t.hours), ('Duration', t.duration),
-                         ('Meeting point', t.meeting_point)]:
+    for label, value in [('Location', t.location), ('Price', t.price), ('Hours', t.hours),
+                         ('Duration', t.duration), ('Meeting point', t.meeting_point)]:
         if value:
             parts.append(f'{label}: {value}.')
     if t.includes:
@@ -133,7 +150,12 @@ def _from_transcript(run: _Run, segments: list[str], out_dir: str | None) -> Pip
     # Free text: drop just the sentence with an invented number ("Duration: 3 hours").
     # Fact fields (price, hours...) are not trimmed: an invented one still holds the listing.
     en.title = drop_ungrounded_sentences(en.title, source)
-    en.description = drop_ungrounded_sentences(en.description, source)
+    # Split into service / location / cost. The service is everything she said, translated in
+    # full (not the model's rewrite), minus the sentence that only states the price; the cost is
+    # that sentence as she said it ("2500 rupees a night"); the location is the places she named.
+    en.description, cost = _split_cost(result.transcript_en.strip(), en.price)
+    en.price = cost or en.price
+    en.location = ', '.join(places_in(transcript)) or en.meeting_point
     result.listing = Listing(category=category, text={'en': en})
     if not en.title or not en.description:
         reasons.append('empty_listing')

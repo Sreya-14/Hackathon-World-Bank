@@ -15,11 +15,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import bot, channels, db, engine
+from . import bot, channels, db, engine, telegram
 from .config import settings
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("lantern")
+logging.getLogger("twilio.http_client").setLevel(logging.WARNING)  # it logs every request and its headers
+logging.getLogger("httpx").setLevel(logging.WARNING)  # its request lines include the Telegram bot token
 
 STATIC = Path(__file__).parent / "static"
 
@@ -29,6 +31,12 @@ async def lifespan(_: FastAPI):
     db.db.init()
     log.info("ML: %s | WhatsApp: %s | DB: %s", "MOCK" if settings.mock_ai else f"real ({settings.ml_dir})",
              "on" if settings.twilio_enabled else "off (vendors use /host)", "postgres" if db.db.is_pg else "sqlite")
+    if not settings.mock_ai:
+        # Import the model libraries here, once, before any thread: transformers loads lazily, and
+        # two threads importing it at the same time can fail half-way ("cannot import name ...").
+        import transformers  # noqa: F401
+        from transformers import AutoTokenizer, VitsModel  # noqa: F401
+    telegram.start()
     if not settings.mock_ai:
         # Load models in the background (~20 s) so the server answers right away.
         threading.Thread(target=engine.warm_up, name="warm-up", daemon=True).start()
@@ -42,7 +50,7 @@ app.mount("/media", StaticFiles(directory=settings.media_dir), name="media")
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    return {"ok": True, "mock_ai": settings.mock_ai, "whatsapp": settings.twilio_enabled, "queue": engine.queue_length()}
+    return {"ok": True, "mock_ai": settings.mock_ai, "whatsapp": settings.twilio_enabled, "telegram": telegram.enabled(), "queue": engine.queue_length()}
 
 
 # --- WhatsApp (Twilio) -----------------------------------------------------------------
@@ -51,6 +59,11 @@ def health() -> dict[str, Any]:
 async def twilio_webhook(request: Request, background: BackgroundTasks) -> Response:
     form = dict(await request.form())
     if settings.twilio_enabled and settings.validate_twilio_signature:
+        # Without this check anyone could post as any phone number. It needs the Auth Token
+        # (an API key can't verify signatures); VALIDATE_TWILIO_SIGNATURE=false turns it off.
+        if not settings.twilio_auth_token:
+            log.error("TWILIO_AUTH_TOKEN is not set, so webhooks can't be verified; rejecting")
+            raise HTTPException(503, "webhook verification not configured")
         from twilio.request_validator import RequestValidator
 
         url = f"{settings.public_base_url}{request.url.path}"
@@ -110,7 +123,7 @@ async def host_send(
 @app.get("/host/api/messages")
 def host_messages(number: str, after: int = 0) -> dict[str, Any]:
     phone = _web_phone(number)
-    v = db.db.one("SELECT state, live, hidden, privacy FROM vendors WHERE phone = ?", (phone,))
+    v = db.db.one("SELECT state, live, hidden, privacy, voice_lang FROM vendors WHERE phone = ?", (phone,))
     return {"messages": db.web_messages(phone, after), "vendor": v, "queue": engine.queue_length()}
 
 
@@ -121,7 +134,7 @@ def _days_since(ts: str | None) -> float | None:
 
 
 def _whatsapp_url(v: dict[str, Any], title_en: str) -> str:
-    number = re.sub(r"\D", "", v["phone"].split(":")[-1])
+    number = re.sub(r"\D", "", v.get("contact_phone") or v["phone"].split(":")[-1])
     greeting = (
         "നമസ്കാരം! ലാന്റേണിൽ നിങ്ങളുടെ ലിസ്റ്റിംഗ് കണ്ടു. എനിക്ക് താല്പര്യമുണ്ട്.\n"
         f'(Hello! I saw your listing "{title_en}" on Lantern and I\'m interested.)'
@@ -146,6 +159,8 @@ def _feature(v: dict[str, Any], with_contact: bool = False) -> dict[str, Any] | 
         "duration": en.get("duration"),
         "includes": {"en": en.get("includes") or [], "de": de.get("includes") or []},
         "meeting_point": {"en": en.get("meeting_point"), "de": de.get("meeting_point")},
+        # The places the host named ("Meppadi"); the map pin's precision is in "privacy".
+        "place": en.get("location"),
         "machine_translated": listing.get("machine_translated", []),
         "photo_url": channels.media_url(v.get("photo_path")),
         "privacy": v["privacy"],

@@ -16,6 +16,8 @@ export interface ListingProps {
   hours: string | null;
   duration?: string | null;
   includes?: Record<Lang, string[]>;
+  /** Places the host named ("Meppadi"). The pin's precision is in `privacy`. */
+  place?: string | null;
   /** The vendor's own description of where to meet, if she gave one. */
   meeting_point?: Record<Lang, string | null>;
   /** Languages produced by machine translation (labelled in the UI). */

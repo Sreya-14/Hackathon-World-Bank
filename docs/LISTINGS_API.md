@@ -32,6 +32,7 @@ CORS must allow the app's origin, e.g. `https://sreya-14.github.io` and `http://
     "duration": null,
     "includes": { "en": ["coffee tasting"], "de": ["Kaffeeverkostung"] },
     "meeting_point": { "en": null, "de": null },
+    "place": "Kalpetta",
     "machine_translated": ["de"],
     "photo_url": "https://<backend>/media/….jpg",
     "privacy": "area",
@@ -53,6 +54,7 @@ CORS must allow the app's origin, e.g. `https://sreya-14.github.io` and `http://
 | `title`, `description` | English and German. |
 | `price`, `hours`, `duration` | As the vendor said them (English); `null` unless she said them (no invented facts). The app shows "Ask the host" for `null` price/hours. |
 | `includes`, `meeting_point` | Per language, from the ML layer. Optional. |
+| `place` | Places the host named in the voice note ("Meppadi"), read from the Malayalam. Optional; the pin's precision is in `privacy`. |
 | `machine_translated` | Languages produced by machine translation; the app labels them. Optional. |
 | `privacy` | `exact`, `area` or `meeting`. Controls the pin style and the location text. |
 | `radius_m` | Grid size for `area`, otherwise `null`. |

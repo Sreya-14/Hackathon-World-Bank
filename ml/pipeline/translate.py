@@ -21,9 +21,40 @@ def _tokenizer(src: str):
     return AutoTokenizer.from_pretrained(str(nllb_dir()), src_lang=config.NLLB_CODES[src])
 
 
+# Malayalam clause endings: future (തരും), ought (പറയണം, ചെയ്യണം, നോക്കണം, വരണം), present
+# (നടത്തുന്നു), copula (ആണ്). Not any word ending in ണം: ഉച്ചഭക്ഷണം (lunch) is a noun.
+# A price also closes a clause (ഒരാൾക്ക് മുന്നൂറ്റമ്പത് രൂപ | ഒരു ദിവസം മുമ്പ് വിളിക്കണം), or NLLB merges
+# the two into "call me three hundred and fifty rupees a day before".
+# So does a time ("ഉച്ചയ്ക്ക് ഒരു മണിക്ക്" | "ഒരു ദിവസം മുമ്പ് വിളിക്കണം"), or it became "call me one o'clock".
+_CLAUSE_END = re.compile(r'(?:ും|(?:യ|ക്ക|ര)ണം|ുന്നു|ാണ്|ില്ല|രൂപ(?:യാണ്|യ്ക്ക്|യും)?|മണിക്ക്)$')
+MAX_CHUNK_WORDS = 12
+
+
+def _chunks(sentence: str) -> list[str]:
+    """Split a long unpunctuated Malayalam stretch after clause-ending verbs.
+
+    NLLB stops early on a long unpunctuated line: a 30-word voice note came back as its first
+    clause only, losing "350 rupees per person, 1 pm, call a day before". Short sentences and
+    other languages pass through unchanged.
+    """
+    words = sentence.split()
+    if len(words) <= MAX_CHUNK_WORDS or not re.search('[\u0d00-\u0d7f]', sentence):
+        return [sentence]
+    chunks, current = [], []
+    for w in words:
+        current.append(w)
+        if (len(current) >= 3 and _CLAUSE_END.search(w)) or len(current) >= MAX_CHUNK_WORDS:
+            chunks.append(' '.join(current))
+            current = []
+    if current:
+        chunks.append(' '.join(current))
+    return chunks
+
+
 def _sentences(text: str) -> list[str]:
-    # Whisper often leaves Malayalam unpunctuated; long chunks are still fine for NLLB up to ~200 tokens.
-    return [s.strip() for s in re.split(r'(?<=[.!?।])\s+|\n+', text) if s.strip()]
+    # Whisper often leaves Malayalam unpunctuated: split long stretches into clauses (see _chunks).
+    parts = [s.strip() for s in re.split(r'(?<=[.!?।])\s+|\n+', text) if s.strip()]
+    return [c for p in parts for c in _chunks(p)]
 
 
 def translate(text: str, src: str, tgt: str) -> str:
@@ -40,5 +71,12 @@ def translate(text: str, src: str, tgt: str) -> str:
     out = []
     for r in results:
         ids = tok.convert_tokens_to_ids(r.hypotheses[0][1:])  # drop the target-language token
-        out.append(tok.decode(ids, skip_special_tokens=True).strip())
+        part = tok.decode(ids, skip_special_tokens=True).strip()
+        if part and len(parts) > 1:
+            # Clauses split from unpunctuated speech come back without a full stop or capital.
+            # (A single phrase, like a title or price, is left as it is.)
+            part = part[0].upper() + part[1:]
+            part = part if part[-1] in '.!?' else part + '.'
+        if part:
+            out.append(part)
     return ' '.join(out)

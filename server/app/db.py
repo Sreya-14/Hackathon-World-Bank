@@ -18,6 +18,8 @@ _SCHEMA = """
 CREATE TABLE IF NOT EXISTS vendors (
   id {pk},
   phone TEXT UNIQUE NOT NULL,
+  contact_phone TEXT,
+  voice_lang TEXT,
   state TEXT NOT NULL DEFAULT 'NEW',
   consented INTEGER NOT NULL DEFAULT 0,
   photo_path TEXT,
@@ -65,6 +67,9 @@ CREATE TABLE IF NOT EXISTS web_outbox (
 """
 
 
+_ADDED_COLUMNS = [("contact_phone", "TEXT"), ("voice_lang", "TEXT")]
+
+
 def now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -94,6 +99,13 @@ class DB:
             for stmt in _SCHEMA.format(pk=pk).split(";"):
                 if stmt.strip():
                     conn.execute(stmt)
+            # Columns added after the first release: add them to databases created earlier.
+            for col, typ in _ADDED_COLUMNS:
+                try:
+                    conn.execute(f"ALTER TABLE vendors ADD COLUMN {col} {typ}")
+                except Exception:
+                    if self.is_pg:
+                        conn.rollback()
 
     def query(self, sql: str, params: tuple | list = ()) -> list[dict[str, Any]]:
         with self._lock, self._connect() as conn:

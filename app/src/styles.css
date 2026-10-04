@@ -762,6 +762,13 @@ button:disabled {
   margin-right: 2px;
 }
 
+.place {
+  display: block;
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
 .meeting-note {
   display: block;
   margin-top: 4px;

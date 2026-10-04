@@ -32,6 +32,7 @@ class ListingText(BaseModel):
     duration: Optional[str] = None
     includes: list[str] = Field(default_factory=list)
     meeting_point: Optional[str] = None
+    location: Optional[str] = Field(None, description='Where, as she named it: "Meppadi". Place names only')
 
 
 class Listing(BaseModel):

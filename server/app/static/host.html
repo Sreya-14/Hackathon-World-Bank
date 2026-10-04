@@ -159,14 +159,17 @@ function showTyping(on) {
   } else if (!on && typing) { typing.remove(); typing = null; }
 }
 
+let voiceLang = null;
+const LANG_QUICK = [['മലയാളം', 'മലയാളം', 'Malayalam', true], ['English', 'ഇംഗ്ലീഷ്', 'English', true]];
+
 function renderQuick() {
   const box = $('quick');
   box.innerHTML = '';
-  for (const [value, ml, en, go] of QUICK[state] || []) {
+  for (const [value, ml, en, go] of (voiceLang ? QUICK[state] : LANG_QUICK) || []) {
     const b = document.createElement('button');
     if (go) b.className = 'go';
     b.innerHTML = `${value} ${ml}<span class="en">${en}</span>`;
-    b.onclick = () => { bubble('me', `${value} ${ml}`); send({ text: value }); };
+    b.onclick = () => { bubble('me', value === ml ? value : `${value} ${ml}`); send({ text: value }); };
     box.append(b);
   }
 }
@@ -187,7 +190,8 @@ async function poll() {
     for (const m of data.messages) { after = m.id; bubble('bot', m.text, { audio: m.media_url }); }
     if (data.messages.length) log.scrollTop = log.scrollHeight; // land on the newest message
     const s = data.vendor?.state ?? 'NEW';
-    if (s !== state) { state = s; renderQuick(); }
+    const lang = data.vendor?.voice_lang ?? null;
+    if (s !== state || lang !== voiceLang) { state = s; voiceLang = lang; renderQuick(); }
     $('state').textContent = (STATES[s] || s) + (data.vendor?.hidden ? ' · മറച്ചു' : '');
     showTyping(s === 'PROCESSING');
   } catch { /* server restarting */ }

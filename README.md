@@ -5,7 +5,7 @@ Hack-Nation × World Bank, Small AI for Development: Tourism (Annex C).
 A small tour or craft host in Wayanad, Kerala describes what they offer in a voice note, in Malayalam. Small local AI models turn it into a listing in English and German. The host hears it read back in Malayalam and approves it, then chooses how exactly to share their location. Tourists find them on a map that works offline and tap to message them on WhatsApp, with a greeting already written in Malayalam.
 
 ```
-Host (WhatsApp or /host page)  →  server/  →  ml/pipeline (speech → listing → read-back)
+Host (Telegram, WhatsApp or /host)  →  server/  →  ml/pipeline (speech → listing → read-back)
                                      │
                                      └── /api/listings  →  app/ (tourist map, offline)
 ```
@@ -13,7 +13,7 @@ Host (WhatsApp or /host page)  →  server/  →  ml/pipeline (speech → listin
 | Folder | What |
 |---|---|
 | `app/` | **Tourist app**: installable PWA (Vite + React + TypeScript, MapLibre + PMTiles, Dexie). Map of Wayanad, listings in EN/DE, WhatsApp contact, offline area download. |
-| `server/` | **Lantern server** (FastAPI): the host's bot over WhatsApp (Twilio) or the `/host` web page, a photo check, a job queue around the ML layer, the approve → location → privacy flow, and the public listings API. |
+| `server/` | **Lantern server** (FastAPI): the host's bot over Telegram, WhatsApp (Twilio) or the `/host` web page, a photo check, a job queue around the ML layer, the approve → location → privacy flow, and the public listings API. |
 | `ml/` | **ML layer**: Malayalam voice note → listing + read-back, with small local models (~2.7 GB). See [docs/ENGINE_API.md](docs/ENGINE_API.md). |
 | `docs/` | [LISTINGS_API.md](docs/LISTINGS_API.md) (server → app), [ENGINE_API.md](docs/ENGINE_API.md) (ML layer → server). |
 | `scripts/deploy-pages.sh` | Builds the tourist app and publishes it to GitHub Pages. |
@@ -53,7 +53,9 @@ VITE_API_URL=http://localhost:8000 npm run dev
 
 Without `VITE_API_URL` the app shows bundled sample listings, which is how the GitHub Pages demo works with no server.
 
-**4. WhatsApp** (optional): create a Twilio WhatsApp Sandbox, copy `server/.env.example` to `server/.env`, fill in the Twilio keys and a public HTTPS `PUBLIC_BASE_URL` (e.g. ngrok), and set the sandbox webhook to `<PUBLIC_BASE_URL>/twilio/whatsapp`.
+**4. Telegram** (free, recommended): create a bot with @BotFather, put its token in `server/.env` as `TELEGRAM_BOT_TOKEN`, and restart the server. Hosts message the bot, share their phone number once (tourists contact them on WhatsApp at that number), then send a photo and a voice note. No public URL needed.
+
+**5. WhatsApp** (optional; the Twilio sandbox needs a paid account): create a Twilio WhatsApp Sandbox, copy `server/.env.example` to `server/.env`, fill in the Twilio keys and a public HTTPS `PUBLIC_BASE_URL` (e.g. ngrok), and set the sandbox webhook to `<PUBLIC_BASE_URL>/twilio/whatsapp`.
 
 ## Tests
 

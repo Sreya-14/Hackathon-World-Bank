@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from . import channels, db, engine
 from .config import settings
 from .photo import check_photo
-from .prompts import en
+from .prompts import LANGUAGE_COMMANDS, en, ml, parse_language
 
 log = logging.getLogger("lantern.bot")
 
@@ -30,6 +30,8 @@ class Inbound:
     lon: float | None = None
     # Web page only: Malayalam typed instead of spoken (runs the pipeline from text).
     typed_text: str = ""
+    # Telegram only: the sender's own number, shared with Telegram's "share phone number" button.
+    contact_phone: str = ""
 
     @property
     def photo(self) -> str | None:
@@ -61,6 +63,11 @@ CHECKIN = {"📍", "here", "ഇവിടെ"}
 RESTART = {"restart", "start over"}
 
 
+def needs_contact(v: dict) -> bool:
+    """Telegram hosts must share their own number before anything else (WhatsApp/web already have it)."""
+    return v["phone"].startswith("tg:") and not v.get("contact_phone")
+
+
 def snap_to_grid(lat: float, lon: float, grid_m: float) -> tuple[float, float]:
     """Centre of the ~grid_m square containing the point; the exact spot is never stored."""
     lat_step = grid_m / 111_320
@@ -88,21 +95,44 @@ def _handle(msg: Inbound) -> None:
     cmd = _norm(msg.text)
 
     if cmd in RESTART:
-        db.update_vendor(v["id"], state="NEW", photo_path=None, audio_path=None, typed_text=None, draft_json=None, review_reasons=None)
-        say("restart")
-        say("welcome")
+        db.update_vendor(v["id"], state="NEW", photo_path=None, audio_path=None, typed_text=None, draft_json=None,
+                         review_reasons=None, voice_lang=None, consented=0)
+        channels.send_language_choice(msg.phone)
+        return
+    if cmd in LANGUAGE_COMMANDS:
+        db.update_vendor(v["id"], voice_lang=None)
+        channels.send_language_choice(msg.phone)
         return
     if cmd in HIDE:
         if v["live"]:
             db.update_vendor(v["id"], hidden=1)
         say("hidden")
         return
+    if not v["voice_lang"]:
+        # Very first step: the host picks the language the bot writes and speaks in.
+        lang = parse_language(cmd)
+        if not lang:
+            channels.send_language_choice(msg.phone)
+            return
+        v = db.update_vendor(v["id"], voice_lang=lang)
+        if v["consented"]:  # just switching language
+            say("approve_hint" if v["state"] == "AWAITING_APPROVAL" else "language_set")
+            return
     if not v["consented"]:
-        # First contact: explain what is shared publicly before anything else.
+        # Then explain what is shared publicly before anything else.
         v = db.update_vendor(v["id"], consented=1)
         say("welcome")
-        if not (msg.photo or msg.has_voice):
-            return
+        if needs_contact(v):
+            say("share_contact")
+        return
+    if needs_contact(v):
+        # Telegram doesn't reveal the number tourists will message, so ask for it first.
+        if msg.contact_phone:
+            db.update_vendor(v["id"], contact_phone=msg.contact_phone)
+            say("contact_thanks")
+        else:
+            say("share_contact")
+        return
 
     state = v["state"]
     if state == "PROCESSING":
@@ -218,14 +248,45 @@ def _apply_result(vendor_id: int, was_live: bool, result) -> None:
         channels.send_prompt(v["phone"], "not_sure")
         return
 
-    audio = engine.to_ogg(result.readback_wav) if result.readback_wav else None
+    t = result.listing.text["en"]
+    if v["voice_lang"] == "en":
+        # The pipeline reads back in Malayalam; English hosts hear the English listing instead.
+        readback = english_readback(t)
+        audio = engine.speak(readback, "en")
+    else:
+        readback = result.readback_text
+        audio = engine.to_ogg(result.readback_wav) if result.readback_wav else None
     db.update_vendor(
         vendor_id, state="AWAITING_APPROVAL", draft_json=result.listing.model_dump_json(),
-        readback_text=result.readback_text, readback_audio=str(audio) if audio else None, review_reasons=None, **fields,
+        readback_text=readback, readback_audio=str(audio) if audio else None, review_reasons=None, **fields,
     )
-    t = result.listing.text["en"]
-    summary = "\n".join(filter(None, [f"*{t.title}*", t.description, t.price and f"💰 {t.price}", t.hours and f"🕘 {t.hours}"]))
-    channels.send(v["phone"], f"🔊 {result.readback_text}\n\n_{en('approve_hint')}_\n\n{summary}", audio)
+    summary = listing_summary(t)
+    hint = en("approve_hint") if v["voice_lang"] != "en" else ml("approve_hint")
+    channels.send(v["phone"], f"🔊 {readback}\n\n_{hint}_\n\n{summary}", audio)
+
+
+def listing_summary(t) -> str:
+    """The draft as the host sees it in the chat: service, location and cost on separate lines."""
+    return "\n".join(filter(None, [
+        f"*{t.title}*",
+        f"🛎 Service: {t.description}",
+        f"📍 Location: {t.location}" if getattr(t, "location", None) else None,
+        f"💰 Cost: {t.price}" if t.price else "💰 Cost: not mentioned",
+        f"🕘 Time: {t.hours}" if t.hours else None,
+    ]))
+
+
+def english_readback(t) -> str:
+    """What an English-speaking host hears before approving: the listing tourists will see."""
+    parts = ["This is what tourists will see.", f"{t.title}.", t.description]
+    for label, value in (("Location", getattr(t, "location", None)), ("Cost", t.price), ("Hours", t.hours),
+                         ("Duration", t.duration), ("Meeting point", t.meeting_point)):
+        if value:
+            parts.append(f"{label}: {value}.")
+    if t.includes:
+        parts.append(f"Included: {', '.join(t.includes)}.")
+    parts.append(en("approve_hint"))
+    return " ".join(parts)
 
 
 def _approve(v: dict) -> None:

@@ -13,8 +13,14 @@ os.environ.update(
     SYNC_JOBS="true",
     DATABASE_URL=f"sqlite:///{_TMP / 'test.db'}",
     MEDIA_DIR=str(_TMP / "media"),
+    # Never use the real credentials in server/.env (load_dotenv doesn't override these).
     TWILIO_ACCOUNT_SID="",
     TWILIO_AUTH_TOKEN="",
+    TWILIO_API_KEY_SID="",
+    TWILIO_API_KEY_SECRET="",
+    TELEGRAM_BOT_TOKEN="",
+    PROMPT_VOICE="ml",
+    PUBLIC_BASE_URL="http://localhost:8000",
 )
 
 from app import db  # noqa: E402

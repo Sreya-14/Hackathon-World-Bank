@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { contactLink, sendFeedback } from './api';
+import { contactLink, photoSrc, sendFeedback } from './api';
 import { getMarked, mark, type SavedArea } from './db';
 import { CATEGORY, setLang, useT } from './i18n';
 import { AREA_MB } from './tiles';
@@ -7,11 +7,35 @@ import type { Category, Lang, Listing, ListingProps } from './types';
 
 // --- Small pieces -------------------------------------------------------------------
 
+// One fetch per photo, shared by the card and the detail sheet.
+const photoCache = new Map<string, Promise<string>>();
+
+function usePhoto(url: string | null): string | null {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    setSrc(null);
+    if (!url) return;
+    let cached = photoCache.get(url);
+    if (!cached) {
+      cached = photoSrc(url);
+      photoCache.set(url, cached);
+      cached.catch(() => photoCache.delete(url)); // retry next time (e.g. back online)
+    }
+    let live = true;
+    cached.then((s) => live && setSrc(s)).catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [url]);
+  return src;
+}
+
 export function Thumb({ p, large }: { p: ListingProps; large?: boolean }) {
   const cat = CATEGORY[p.category];
+  const src = usePhoto(p.photo_url);
   return (
     <div className={`thumb ${large ? 'thumb-lg' : ''}`} style={{ ['--hue' as string]: cat.hue }}>
-      {p.photo_url ? <img src={p.photo_url} alt="" loading="lazy" /> : <span aria-hidden>{cat.icon}</span>}
+      {src ? <img src={src} alt="" loading="lazy" /> : <span aria-hidden>{cat.icon}</span>}
     </div>
   );
 }
@@ -240,6 +264,7 @@ export function DetailSheet({ listing, online, onClose }: { listing: Listing | n
               <div className="wide">
                 <dt>{t('location')}</dt>
                 <dd>
+                  {p.place && <span className="place">{p.place}</span>}
                   {p.privacy === 'area' ? `◌ ${t('area', { n: p.radius_m ?? 200 })}` : p.privacy === 'meeting' ? `🚩 ${t('meeting')}` : `📍 ${t('exact')}`}
                   {p.meeting_point?.[lang] && <span className="meeting-note">“{p.meeting_point[lang]}”</span>}
                 </dd>

@@ -5,9 +5,12 @@ import type { ListingCollection } from './types';
 
 export const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') || '';
 const SAMPLE_URL = `${import.meta.env.BASE_URL}data/sample-listings.json`;
+// A server behind a free ngrok tunnel answers browsers with a warning page unless this header is sent.
+const API_HEADERS: HeadersInit = /ngrok/.test(API_URL) ? { 'ngrok-skip-browser-warning': '1' } : {};
 
 async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });
+  const headers = url.startsWith(API_URL || '\0') ? API_HEADERS : {};
+  const res = await fetch(url, { ...init, headers, signal: AbortSignal.timeout(10_000) });
   if (!res.ok) throw new Error(`${res.status} ${url}`);
   return res.json() as Promise<T>;
 }
@@ -47,7 +50,18 @@ export async function contactLink(id: number, offlineCopy?: string | null): Prom
   return offlineCopy ?? null;
 }
 
+/**
+ * A photo URL the browser can show. Photos from a server behind ngrok are fetched with the
+ * skip-warning header (an <img> can't send it) and shown from a blob URL.
+ */
+export async function photoSrc(url: string): Promise<string> {
+  if (!API_URL || !url.startsWith(API_URL) || !('ngrok-skip-browser-warning' in API_HEADERS)) return url;
+  const res = await fetch(url, { headers: API_HEADERS });
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  return URL.createObjectURL(await res.blob());
+}
+
 export async function sendFeedback(id: number, kind: 'met' | 'report'): Promise<void> {
   if (!API_URL) return;
-  await fetch(`${API_URL}/api/listings/${id}/${kind}`, { method: 'POST' }).catch(() => undefined);
+  await fetch(`${API_URL}/api/listings/${id}/${kind}`, { method: 'POST', headers: API_HEADERS }).catch(() => undefined);
 }

@@ -36,9 +36,20 @@ class Settings:
 
     # Twilio WhatsApp. Empty = WhatsApp off; vendors use the /host web page.
     twilio_account_sid: str = os.getenv("TWILIO_ACCOUNT_SID", "")
+    # Either the account's Auth Token, or an API key (SK…) + secret for sending and media.
+    # Checking that webhooks really come from Twilio always needs the Auth Token.
     twilio_auth_token: str = os.getenv("TWILIO_AUTH_TOKEN", "")
+    twilio_api_key_sid: str = os.getenv("TWILIO_API_KEY_SID", "")
+    twilio_api_key_secret: str = os.getenv("TWILIO_API_KEY_SECRET", "")
     twilio_whatsapp_from: str = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")  # sandbox number
     validate_twilio_signature: bool = _bool("VALIDATE_TWILIO_SIGNATURE", True)
+
+    # Language for the bot's text and voice clips until a host picks one ("ml" or "en").
+    # Each host chooses their own at the start; this is only the fallback.
+    prompt_voice: str = os.getenv("PROMPT_VOICE", "ml")
+
+    # Telegram bot for hosts (free; from @BotFather). Empty = off.
+    telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
     # Photo check (the ML pipeline handles voice; photos are checked here).
     blur_threshold: float = float(os.getenv("BLUR_THRESHOLD", "60"))  # Laplacian variance
@@ -51,7 +62,16 @@ class Settings:
 
     @property
     def twilio_enabled(self) -> bool:
-        return bool(self.twilio_account_sid and self.twilio_auth_token)
+        return bool(self.twilio_account_sid and self.twilio_credentials)
+
+    @property
+    def twilio_credentials(self) -> tuple[str, str] | None:
+        """(username, password) for Twilio's REST API: the API key if set, else the account."""
+        if self.twilio_api_key_sid and self.twilio_api_key_secret:
+            return self.twilio_api_key_sid, self.twilio_api_key_secret
+        if self.twilio_account_sid and self.twilio_auth_token:
+            return self.twilio_account_sid, self.twilio_auth_token
+        return None
 
 
 settings = Settings()
