@@ -128,7 +128,13 @@ def _fuzzy(token: str) -> str:
     return token
 
 
+# Malayalam fuses "all" onto the word before it: പായസം + എല്ലാം → പായസമെല്ലാം. Split it back so the
+# glossary can see the word (else payasam dropped out and the translation said "all the dough").
+_FUSED_ALL = re.compile(r'([\u0d00-\u0d7f]{2,})മെല്ലാം')
+
+
 def protect(text: str) -> str:
+    text = _FUSED_ALL.sub(r'\1ം എല്ലാം', text)
     text = _TOKEN.sub(lambda m: _fuzzy(m.group()), text)
     for pattern, name in _PATTERNS:
         text = pattern.sub(lambda m: name + _ending(m.group(1)), text)

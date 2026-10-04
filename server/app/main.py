@@ -133,13 +133,19 @@ def _days_since(ts: str | None) -> float | None:
     return (datetime.now(timezone.utc) - datetime.fromisoformat(ts)).total_seconds() / 86400 if ts else None
 
 
-def _whatsapp_url(v: dict[str, Any], title_en: str) -> str:
+def _contact_links(v: dict[str, Any], title_en: str) -> dict[str, str]:
+    """WhatsApp and SMS links to the host, both opening with a greeting in Malayalam (plus English).
+    SMS needs only mobile signal, no data, so it also works where WhatsApp doesn't."""
     number = re.sub(r"\D", "", v.get("contact_phone") or v["phone"].split(":")[-1])
-    greeting = (
+    greeting = urllib.parse.quote(
         "നമസ്കാരം! ലാന്റേണിൽ നിങ്ങളുടെ ലിസ്റ്റിംഗ് കണ്ടു. എനിക്ക് താല്പര്യമുണ്ട്.\n"
         f'(Hello! I saw your listing "{title_en}" on Lantern and I\'m interested.)'
     )
-    return f"https://wa.me/{number}?text={urllib.parse.quote(greeting)}"
+    return {
+        "whatsapp_url": f"https://wa.me/{number}?text={greeting}",
+        # "?&body=" works on both Android and iOS.
+        "sms_url": f"sms:+{number}?&body={greeting}",
+    }
 
 
 def _feature(v: dict[str, Any], with_contact: bool = False) -> dict[str, Any] | None:
@@ -172,7 +178,7 @@ def _feature(v: dict[str, Any], with_contact: bool = False) -> dict[str, Any] | 
         "updated_at": v["updated_at"],
     }
     if with_contact:
-        props["whatsapp_url"] = _whatsapp_url(v, en["title"])
+        props.update(_contact_links(v, en["title"]))
     return {"type": "Feature", "geometry": {"type": "Point", "coordinates": [v["lon"], v["lat"]]}, "properties": props}
 
 
@@ -200,7 +206,7 @@ def _live_vendor(vendor_id: int) -> dict[str, Any]:
 def contact(vendor_id: int) -> dict[str, str]:
     v = _live_vendor(vendor_id)
     db.increment(vendor_id, "interest_count")
-    return {"whatsapp_url": _whatsapp_url(v, db.listing_of(v)["text"]["en"]["title"])}
+    return _contact_links(v, db.listing_of(v)["text"]["en"]["title"])
 
 
 @app.post("/api/listings/{vendor_id}/met")

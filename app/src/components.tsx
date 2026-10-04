@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { contactLink, photoSrc, sendFeedback } from './api';
+import { contactLinks, photoSrc, sendFeedback } from './api';
 import { getMarked, mark, type SavedArea } from './db';
 import { CATEGORY, setLang, useT } from './i18n';
 import { AREA_MB } from './tiles';
@@ -189,14 +189,16 @@ export function DetailSheet({ listing, online, onClose }: { listing: Listing | n
     });
   }, [p?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function contact() {
+  async function contact(via: 'whatsapp' | 'sms') {
     if (!p) return;
     setBusy(true);
-    const url = await contactLink(p.id, p.whatsapp_url);
+    const links = await contactLinks(p.id, { whatsapp_url: p.whatsapp_url ?? null, sms_url: p.sms_url ?? null });
     setBusy(false);
+    const url = via === 'whatsapp' ? links.whatsapp_url : links.sms_url;
     if (!url) return setNote(t('needsOnline'));
-    if (!online) setNote(t('offlineQueued'));
-    window.open(url, '_blank', 'noopener');
+    setNote(!online && via === 'whatsapp' ? t('offlineQueued') : null);
+    if (via === 'sms') location.href = url; // hands over to the phone's messaging app
+    else window.open(url, '_blank', 'noopener');
   }
 
   async function iMet() {
@@ -274,13 +276,25 @@ export function DetailSheet({ listing, online, onClose }: { listing: Listing | n
             {p.seed ? (
               <p className="notice">{t('sampleNote')}</p>
             ) : (
-              <button className="cta" onClick={contact} disabled={busy}>
-                <svg viewBox="0 0 24 24" aria-hidden><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.2z" /></svg>
-                <span>
+              <div className="contact">
+                <div className="contact-head">
                   <strong>{t('interested')}</strong>
                   <small>{t('interestedSub')}</small>
-                </span>
-              </button>
+                </div>
+                <div className="contact-buttons">
+                  <button className="cta" onClick={() => contact('whatsapp')} disabled={busy}>
+                    <svg viewBox="0 0 24 24" aria-hidden><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.2z" /></svg>
+                    <strong>{t('whatsapp')}</strong>
+                  </button>
+                  <button className="cta cta-sms" onClick={() => contact('sms')} disabled={busy}>
+                    <svg viewBox="0 0 24 24" aria-hidden><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2zm3 6.5a1.5 1.5 0 1 0 0-.01zm5 0a1.5 1.5 0 1 0 0-.01zm5 0a1.5 1.5 0 1 0 0-.01z" /></svg>
+                    <span>
+                      <strong>{t('sms')}</strong>
+                      <small>{t('smsSub')}</small>
+                    </span>
+                  </button>
+                </div>
+              </div>
             )}
             {note && <p className="notice">{note}</p>}
 

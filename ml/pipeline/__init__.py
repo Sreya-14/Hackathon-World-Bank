@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from . import config
-from .grounding import drop_ungrounded_sentences, drop_unsaid_sentences, numbers, ungrounded, with_digits
+from .grounding import drop_ungrounded_sentences, drop_unsaid_sentences, implausible_prices, numbers, ungrounded, with_digits
 from .places import places_in, protect
 from .schema import Listing, ListingText, PipelineResult, ReviewReason, StageTiming
 
@@ -177,6 +177,8 @@ def _from_transcript(run: _Run, segments: list[str], out_dir: str | None) -> Pip
         reasons.append('empty_listing')
     if ungrounded(_all_text(en), source):
         reasons.append('ungrounded_fact')
+    if implausible_prices(' '.join(filter(None, [en.price, en.description]))):
+        reasons.append('implausible_price')
     if reasons:
         return run.done()
 

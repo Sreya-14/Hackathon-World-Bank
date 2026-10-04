@@ -64,7 +64,10 @@ def test_voice_note_to_live_listing_with_area_privacy(sharp_photo, voice_note):
     assert "whatsapp_url" not in p
     [b] = client.get("/api/bundle").json()["features"]
     assert b["properties"]["whatsapp_url"].startswith("https://wa.me/919800000001?text=")
-    assert client.post(f"/api/listings/{v['id']}/contact").json()["whatsapp_url"].startswith("https://wa.me/")
+    links = client.post(f"/api/listings/{v['id']}/contact").json()
+    assert links["whatsapp_url"].startswith("https://wa.me/919800000001?text=")
+    assert links["sms_url"].startswith("sms:+919800000001?&body=")  # SMS works without mobile data
+    assert b["properties"]["sms_url"] == links["sms_url"]  # the offline bundle carries both
 
 
 def test_typed_malayalam_fallback(sharp_photo):

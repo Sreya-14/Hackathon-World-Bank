@@ -116,7 +116,12 @@ _EMOJI = re.compile(r"[\U0001F300-\U0001FAFF☀-➿️⃣]")
 def speak(text: str, lang: str = "ml") -> Path:
     """A clip for a fixed bot prompt (cached by text), as OGG/Opus. lang: "ml" or "en"."""
     spoken = " ".join(_EMOJI.sub(" ", text).split())
-    key = hashlib.sha1(f"{settings.mock_ai}|{lang}|{spoken}".encode()).hexdigest()[:16]
+    voice = ""
+    if lang == "ml" and not settings.mock_ai:
+        from pipeline import tts
+
+        voice = tts.voice_tag()  # a new respelling or recording re-records the clip
+    key = hashlib.sha1(f"{settings.mock_ai}|{lang}|{voice}|{spoken}".encode()).hexdigest()[:16]
     ogg = settings.media_dir / "prompts" / f"{key}.ogg"
     if ogg.exists():
         return ogg

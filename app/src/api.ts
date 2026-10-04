@@ -26,8 +26,12 @@ export async function loadListings(withContacts = false): Promise<{ data: Listin
     if (!withContacts) {
       // Keep contact links from an earlier offline bundle so they still work offline.
       const cached = await getCachedListings();
-      const links = new Map(cached?.features.map((f) => [f.properties.id, f.properties.whatsapp_url]));
-      data.features.forEach((f) => (f.properties.whatsapp_url ??= links.get(f.properties.id) ?? null));
+      const saved = new Map(cached?.features.map((f) => [f.properties.id, f.properties]));
+      data.features.forEach((f) => {
+        const old = saved.get(f.properties.id);
+        f.properties.whatsapp_url ??= old?.whatsapp_url ?? null;
+        f.properties.sms_url ??= old?.sms_url ?? null;
+      });
     }
     await cacheListings(data);
     return { data, fromCache: false };
@@ -38,16 +42,21 @@ export async function loadListings(withContacts = false): Promise<{ data: Listin
   }
 }
 
-/** The vendor's WhatsApp link. Fetched on tap (counts interest); falls back to the offline copy. */
-export async function contactLink(id: number, offlineCopy?: string | null): Promise<string | null> {
+export interface ContactLinks {
+  whatsapp_url: string | null;
+  sms_url: string | null;
+}
+
+/** The host's WhatsApp and SMS links. Fetched on tap (counts interest); falls back to the offline copy. */
+export async function contactLinks(id: number, offlineCopy: ContactLinks): Promise<ContactLinks> {
   if (API_URL && navigator.onLine) {
     try {
-      return (await getJson<{ whatsapp_url: string }>(`${API_URL}/api/listings/${id}/contact`, { method: 'POST' })).whatsapp_url;
+      return await getJson<ContactLinks>(`${API_URL}/api/listings/${id}/contact`, { method: 'POST' });
     } catch {
       /* fall through to the saved copy */
     }
   }
-  return offlineCopy ?? null;
+  return offlineCopy;
 }
 
 /**

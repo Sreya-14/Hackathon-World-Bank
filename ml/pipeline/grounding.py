@@ -25,6 +25,7 @@ _DE = {
 }
 
 _NUM = re.compile(r'\d+(?:[.,]\d+)*')
+_ONE_AS_NUMBER = re.compile(r"\bone\s+(?:o'?clock|am|pm|a\.m\.|p\.m\.|hours?|persons?|people|days?|nights?|kilos?)\b|\bone\s+in\s+the\s+(?:morning|afternoon|evening)", re.I)
 
 
 def _parse_digits(tok: str) -> float:
@@ -62,7 +63,8 @@ def numbers(text: str) -> set[float]:
             total, current, in_run = 0.0, 0.0, False
     # "one" alone is mostly "one of", "the one", not a fact; keep 1 only if written as a
     # digit on its own (not the "1" in "1.500").
-    if not re.search(r'(?<![\d.,])1(?!\d|[.,]\d)', text):
+    # "one o'clock", "one person", "one night" are facts, though: the model writes them as "1".
+    if not re.search(r'(?<![\d.,])1(?!\d|[.,]\d)', text) and not _ONE_AS_NUMBER.search(text):
         found.discard(1.0)
     return found
 
@@ -136,3 +138,20 @@ def drop_unsaid_sentences(text: str, source: str, min_said: float = 0.5) -> str:
 def ungrounded(claimed: str, source: str) -> set[float]:
     """Numbers in `claimed` that do not appear in `source`."""
     return numbers(claimed) - numbers(source)
+
+
+# No host charges less than this; a lower figure means speech to text misheard the number
+# ("മുന്നൂറ്റമ്പത്" (350) heard as "മുന്നൂറ്റം ഉപതു", translated "three and a half rupees").
+MIN_PLAUSIBLE_PRICE = 10
+# The amount attached to the currency: "3 and a half rupees", "250 rupees", "Rs. 800", "₹1500".
+_AMOUNT_THEN_CURRENCY = re.compile(r"(\d+(?:[.,]\d+)?)(\s+and\s+a\s+half)?\s*(?:rupees?|rupien|rupie|rs\.?|inr)\b", re.I)
+_CURRENCY_THEN_AMOUNT = re.compile(r"(?:₹|\brs\.?|\binr)\s*(\d+(?:[.,]\d+)?)", re.I)
+
+
+def implausible_prices(text: str) -> set[float]:
+    """Rupee amounts in `text` below MIN_PLAUSIBLE_PRICE. Only the number attached to the
+    currency counts, so a time or duration in the same sentence ("1 to 3 pm") is ignored."""
+    text = with_digits(text)
+    amounts = {_parse_digits(m.group(1)) + (0.5 if m.group(2) else 0) for m in _AMOUNT_THEN_CURRENCY.finditer(text)}
+    amounts |= {_parse_digits(m.group(1)) for m in _CURRENCY_THEN_AMOUNT.finditer(text)}
+    return {a for a in amounts if 0 < a < MIN_PLAUSIBLE_PRICE}

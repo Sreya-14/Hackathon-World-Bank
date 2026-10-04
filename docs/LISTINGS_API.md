@@ -10,7 +10,7 @@ TypeScript types: [`app/src/types.ts`](../app/src/types.ts).
 |---|---|---|---|
 | GET | `/api/listings` | `FeatureCollection` | Live, approved, not-hidden listings. **No phone numbers.** Polled every 30 s while online, so new pins appear without a reload. |
 | GET | `/api/bundle` | `FeatureCollection` + `generated_at` | Same as `/api/listings`, plus `whatsapp_url` on each listing. Fetched only when the tourist taps "Save for offline", so contact works in airplane mode. |
-| POST | `/api/listings/{id}/contact` | `{ "whatsapp_url": "https://wa.me/…" }` | Called when the tourist taps "I'm interested" (the plan's "phone shown only on tap"). Can be used to count interest. |
+| POST | `/api/listings/{id}/contact` | `{ "whatsapp_url": "https://wa.me/…", "sms_url": "sms:+…?&body=…" }` | Called when the tourist taps "I'm interested" (the plan's "phone shown only on tap"). Can be used to count interest. |
 | POST | `/api/listings/{id}/met` | any | "I met this host". |
 | POST | `/api/listings/{id}/report` | any | Three reports should hide the listing. |
 
@@ -60,4 +60,5 @@ CORS must allow the app's origin, e.g. `https://sreya-14.github.io` and `http://
 | `radius_m` | Grid size for `area`, otherwise `null`. |
 | `days_since_checkin` | Days since the vendor's last 📍 check-in (fractional), or `null`. Under 1 = "lantern lit" glow; over 7 = faded pin. |
 | `seed` | `true` for sample data; the app disables contact for these. |
+| `sms_url` | Only in `/api/bundle`. `sms:+<digits>?&body=<greeting>`: the same greeting as a text message, which needs only mobile signal (no data). |
 | `whatsapp_url` | Only in `/api/bundle`. `https://wa.me/<digits>?text=<greeting>` with the greeting in the vendor's language (Malayalam) plus an English line. |

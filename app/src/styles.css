@@ -853,6 +853,48 @@ button:disabled {
   font-size: 0.78rem;
 }
 
+.contact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--surface-2);
+}
+
+.contact-head {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.contact-head small {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.contact-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.contact-buttons .cta {
+  min-height: 56px;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.cta-sms {
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.cta-sms svg {
+  fill: var(--surface);
+}
+
 .cta-plain {
   background: var(--ink);
   color: var(--surface);

@@ -20,6 +20,7 @@ ReviewReason = Literal[
     'empty_listing',      # nothing usable to list (no category/description)
     'invalid_listing',    # the LLM did not return valid JSON, even after a retry
     'ungrounded_fact',    # price/hours/number in the listing that she never said
+    'implausible_price',  # a price no host would charge (₹3.5 for a lunch): almost always a misheard number
 ]
 
 

@@ -34,6 +34,8 @@ export interface ListingProps {
   updated_at: string;
   /** Only in the offline bundle (/api/bundle). Otherwise fetched on tap via /contact. */
   whatsapp_url?: string | null;
+  /** Same, as a text message (works with mobile signal only, no data). */
+  sms_url?: string | null;
 }
 
 export interface Listing {
