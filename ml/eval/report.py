@@ -22,6 +22,7 @@ MODELS = [
     ('Translation', config.NLLB_MODEL, 'ml→en, en→de, en→ml; CTranslate2 int8', 'CC-BY-NC-4.0 (non-commercial)', nllb_dir),
     ('Listing writer', f'{config.LLM_REPO} ({config.LLM_FILE})', 'llama.cpp, JSON schema', 'Apache-2.0', llm_path),
     ('Read-back voice', config.TTS_MODEL, 'VITS', 'CC-BY-NC-4.0 (non-commercial)', tts_dir),
+    ('Prompt voice (English, demo)', config.TTS_MODEL_EN, 'VITS', 'CC-BY-NC-4.0 (non-commercial)', lambda: tts_dir(config.TTS_MODEL_EN)),
 ]
 
 
@@ -82,7 +83,8 @@ def main() -> None:
               '|---|---|---|---|---|---|']
     for fname, change in [('listing_eval_v1.json', 'first version'),
                           ('listing_eval_v2.json', '"is this an offer?" + category definitions'),
-                          ('listing_eval.json', 'keyword categories + drop sentences with invented numbers')]:
+                          ('listing_eval_v3.json', 'keyword categories + drop sentences with invented numbers'),
+                          ('listing_eval.json', 'description kept only from words she said; place names read from the Malayalam')]:
         r = load(fname)
         if r:
             s = r['summary']

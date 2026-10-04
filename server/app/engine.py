@@ -137,7 +137,12 @@ def speak(text: str, lang: str = "ml") -> Path:
 def _english_voice():
     from transformers import AutoTokenizer, VitsModel
 
-    return VitsModel.from_pretrained(ENGLISH_VOICE).eval(), AutoTokenizer.from_pretrained(ENGLISH_VOICE)
+    # From the side-loaded model folder (cd ml && python -m pipeline.models), so it works offline.
+    from pipeline.models import tts_dir
+
+    local = tts_dir(ENGLISH_VOICE)
+    path = str(local) if (local / "config.json").exists() else ENGLISH_VOICE
+    return VitsModel.from_pretrained(path).eval(), AutoTokenizer.from_pretrained(path)
 
 
 def _speak_english(text: str, wav: Path) -> None:

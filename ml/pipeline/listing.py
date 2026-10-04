@@ -14,6 +14,7 @@ from typing import Optional
 from pydantic import BaseModel, ValidationError
 
 from . import config
+from .grounding import with_digits
 from .models import llm_path
 from .schema import Category, ListingText
 
@@ -109,6 +110,61 @@ def price_in(transcript_en: str) -> Optional[str]:
     return found.pop() if len(found) == 1 else None
 
 
+_DAY = r'(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?'
+_DAYS = re.compile(
+    rf'\b(?:every ?day|daily|all week|on weekends|weekends|weekdays'
+    rf'|except (?:on )?{_DAY}(?: and {_DAY})?'
+    rf'|(?:from |on |every )?{_DAY}(?:\s*(?:to|through|till|until|-|–)\s*{_DAY})?)\b',
+    re.I,
+)
+_CLOCK = r"\d{1,2}(?:[:.]\d{2})?(?:\s*(?:a\.?\s?m\.?|p\.?\s?m\.?|o'clock))?"
+_TIMES = re.compile(
+    rf"(?:\b(?:from|at|starting at|starts at|start at)\s+)?{_CLOCK}"
+    rf"(?:\s*(?:to|till|until|-|–)\s*{_CLOCK})?(?:\s+in the (?:morning|afternoon|evening))?",
+    re.I,
+)
+
+
+def _is_clock(m: re.Match) -> bool:
+    """A real time of day, not a price, a count or a duration ("500 rupees", "2 hours")."""
+    s = m.group()
+    after = m.string[m.end():m.end() + 12].lower()
+    if re.match(r'\s*(?:hours?|hrs?|minutes?|mins?|rupees?|rs|people|persons?|km|days?|nights?)\b', after):
+        return False
+    if any(int(h) > 24 for h in re.findall(r'(?<![:.\d])(\d{1,2})(?:[:.]\d{2})?', s)):  # hours, not the minutes
+        return False
+    marked = re.search(r"[:.]\d{2}|[ap]\.?\s?m\b|o'clock|in the (?:morning|afternoon|evening)", s, re.I)
+    ranged = re.search(r'\b(?:from|at|start)', s, re.I) and re.search(r'\d\s*(?:to|till|until|-|–)\s*\d', s)
+    return bool(marked or ranged)
+
+
+def hours_in(transcript_en: str) -> Optional[str]:
+    """Days and times exactly as she said them ("Every day, from 9:00 to 12:00"), or None.
+
+    The small model usually puts the times into the description and leaves `hours` empty,
+    so the host's "time" line was blank. Copying her words is grounded by construction.
+    """
+    text = with_digits(transcript_en)
+    days = list(dict.fromkeys(m.group().strip() for m in _DAYS.finditer(text)))
+    # The sentence's full stop goes, but not the one in "a.m." / "p.m.".
+    clean = lambda t: t if re.search(r'[ap]\.m\.$', t) else t.rstrip('.')  # noqa: E731
+    times = list(dict.fromkeys(clean(m.group().strip()) for m in _TIMES.finditer(text) if _is_clock(m)))
+    parts = days[:2] + times[:2]
+    if not parts:
+        return None
+    return tidy_hours(', '.join(parts))
+
+
+def tidy_hours(hours: Optional[str]) -> Optional[str]:
+    """"9 am to 12 noon", not "9 a.m. to 12 p.m.": the dots made translation split the phrase
+    ("Jeden Tag ab 9 Uhr morgens. Bis 12 Uhr") and "12 p.m." became "evening 12" in Malayalam."""
+    if not hours:
+        return hours
+    out = re.sub(r'\b([ap])\.\s?m\.?', r'\1m', hours.strip(), flags=re.I)
+    out = re.sub(r'\b12(?::00)?\s*pm\b', '12 noon', out, flags=re.I)
+    return out[0].upper() + out[1:]
+
+
 # The small model is weak at categories (it called a beekeeper and a garden walk "craft"),
 # but words in the transcript are strong evidence. First match wins, so a homestay that
 # "includes breakfast" is not food. Falls back to the model when nothing matches.
@@ -141,7 +197,7 @@ def write_listing(transcript_en: str) -> Optional[tuple[Category, ListingText]] 
             title=raw.title.strip(),
             description=raw.description.strip(),
             price=clean(raw.price) or price_in(transcript_en),
-            hours=clean(raw.days_and_times),
+            hours=tidy_hours(clean(raw.days_and_times)) or hours_in(transcript_en),
             duration=clean(raw.duration),
             includes=[i.strip() for i in raw.includes if i.strip()],
             meeting_point=clean(raw.meeting_point),

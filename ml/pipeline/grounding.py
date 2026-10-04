@@ -99,6 +99,40 @@ def drop_ungrounded_sentences(text: str, source: str) -> str:
     return ' '.join(s for s in sentences if not ungrounded(s, source)).strip()
 
 
+# Words that carry no content: a sentence is judged on the rest.
+_STOP = set('''a an the and or but if of to in on at by for with from as is are was were be been it its this that
+these those you your we our us i me my she her he his they them their there here can will would could should
+do does did have has had not no so than then just also very more most all any some each every about into over
+up out come enjoy experience visit see join learn explore discover take get make our'''.split())
+
+
+def _stem(word: str) -> str:
+    for suffix in ('ings', 'ing', 'ies', 'ied', 'es', 'ed', 's', 'ly'):
+        if word.endswith(suffix) and len(word) - len(suffix) >= 3:
+            return word[: -len(suffix)]
+    return word
+
+
+def _content_words(text: str) -> set[str]:
+    return {_stem(w) for w in re.findall(r"[a-z]+", text.lower()) if w not in _STOP and len(w) > 2}
+
+
+def drop_unsaid_sentences(text: str, source: str, min_said: float = 0.5) -> str:
+    """Remove sentences where most content words are not in `source` (what she said, translated).
+
+    The listing writer turns a garbled translation into fluent text, but also adds things she
+    never said ("freshly roasted coffee made from our own beans"). A sentence stays only if at
+    least half of its content words appear in the transcript; the numbers check is separate.
+    """
+    said = _content_words(source)
+    kept = []
+    for s in re.split(r'(?<=[.!?])\s+', text.strip()):
+        words = _content_words(s)
+        if words and len(words & said) / len(words) >= min_said:
+            kept.append(s)
+    return ' '.join(kept).strip()
+
+
 def ungrounded(claimed: str, source: str) -> set[float]:
     """Numbers in `claimed` that do not appear in `source`."""
     return numbers(claimed) - numbers(source)

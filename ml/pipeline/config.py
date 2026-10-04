@@ -36,6 +36,8 @@ LLM_FILE = 'qwen2.5-1.5b-instruct-q4_k_m.gguf'
 
 # Read-back voice.
 TTS_MODEL = 'facebook/mms-tts-mal'
+# English voice for the bot's prompt clips in the demo setting (server PROMPT_VOICE=en).
+TTS_MODEL_EN = 'facebook/mms-tts-eng'
 
 # "Not sure" thresholds.
 MIN_ASR_CONFIDENCE = 0.55     # mean token probability across the transcript

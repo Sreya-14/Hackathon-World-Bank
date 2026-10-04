@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from . import config
-from .grounding import drop_ungrounded_sentences, numbers, ungrounded, with_digits
+from .grounding import drop_ungrounded_sentences, drop_unsaid_sentences, numbers, ungrounded, with_digits
 from .places import places_in, protect
 from .schema import Listing, ListingText, PipelineResult, ReviewReason, StageTiming
 
@@ -48,6 +48,10 @@ def _translate_listing(t: ListingText, tgt: str) -> ListingText:
     )
 
 
+_PRICE_WORDS = set('''rupee rupees rs inr a an the per person people each head adult adults child children night
+day only it is its costs cost price priced at for and just'''.split())
+
+
 def _split_cost(description: str, price: str | None) -> tuple[str, str | None]:
     """(service text, cost). A short sentence that only states the price becomes the cost,
     as she said it ("Two thousand five hundred rupees a night" → "2500 rupees a night");
@@ -56,10 +60,18 @@ def _split_cost(description: str, price: str | None) -> tuple[str, str | None]:
         return description, None
     price_numbers = numbers(price)
     sentences = re.split(r'(?<=[.!?])\s+', description)
-    is_cost = lambda s: bool(numbers(s)) and numbers(s) <= price_numbers and len(s.split()) <= 10  # noqa: E731
+
+    def is_cost(s: str) -> bool:
+        # Only the price: apart from its numbers, nothing but price words. "It takes an hour
+        # and costs 300 rupees" says more (the duration), so it stays in the service text.
+        words = re.findall(r'[a-z]+', with_digits(s).lower())
+        return (bool(numbers(s)) and numbers(s) <= price_numbers and len(s.split()) <= 10
+                and all(w in _PRICE_WORDS for w in words))
     costs = [s for s in sentences if is_cost(s)]
     service = ' '.join(s for s in sentences if not is_cost(s)).strip()
     cost = with_digits(costs[0]).rstrip('.').strip() if len(costs) == 1 else None
+    if cost:
+        cost = re.sub(r'^(?:price|cost)\s*:\s*', '', cost, flags=re.I)  # "Price: 500 rupees" → "500 rupees"
     return service, cost
 
 
@@ -150,10 +162,14 @@ def _from_transcript(run: _Run, segments: list[str], out_dir: str | None) -> Pip
     # Free text: drop just the sentence with an invented number ("Duration: 3 hours").
     # Fact fields (price, hours...) are not trimmed: an invented one still holds the listing.
     en.title = drop_ungrounded_sentences(en.title, source)
-    # Split into service / location / cost. The service is everything she said, translated in
-    # full (not the model's rewrite), minus the sentence that only states the price; the cost is
-    # that sentence as she said it ("2500 rupees a night"); the location is the places she named.
-    en.description, cost = _split_cost(result.transcript_en.strip(), en.price)
+    # Split into service / location / cost. The service is the listing writer's description,
+    # keeping only sentences built from what she said (numbers and words, both checked against
+    # the transcript): fluent, without its additions ("freshly roasted coffee") and without the
+    # raw translation's garble ("I don't miss the week, day"). If nothing survives, the full
+    # translation is used. Minus the sentence that only states the price; the cost is that
+    # sentence ("2500 rupees a night"); the location is the places she named.
+    service = drop_unsaid_sentences(drop_ungrounded_sentences(en.description, source), result.transcript_en)
+    en.description, cost = _split_cost(service or result.transcript_en.strip(), en.price)
     en.price = cost or en.price
     en.location = ', '.join(places_in(transcript)) or en.meeting_point
     result.listing = Listing(category=category, text={'en': en})

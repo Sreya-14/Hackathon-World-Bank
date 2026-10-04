@@ -27,8 +27,8 @@ def llm_path() -> Path:
     return config.MODELS_DIR / 'llm' / config.LLM_FILE
 
 
-def tts_dir() -> Path:
-    return config.MODELS_DIR / 'tts' / _slug(config.TTS_MODEL)
+def tts_dir(model_id: str = config.TTS_MODEL) -> Path:
+    return config.MODELS_DIR / 'tts' / _slug(model_id)
 
 
 def _ct2_convert(model_id: str, out: Path, copy_files: list[str]) -> None:
@@ -73,7 +73,9 @@ def prepare_llm() -> None:
 
 def prepare_tts() -> None:
     from huggingface_hub import snapshot_download
-    snapshot_download(config.TTS_MODEL, local_dir=tts_dir(), allow_patterns=['*.json', '*.safetensors'])
+    # Both voices, so the server never downloads one at run time (it must work offline).
+    for model_id in (config.TTS_MODEL, config.TTS_MODEL_EN):
+        snapshot_download(model_id, local_dir=tts_dir(model_id), allow_patterns=['*.json', '*.safetensors'])
 
 
 def mb(path: Path) -> float:
@@ -94,7 +96,8 @@ def main() -> None:
         step()
 
     rows = [(f'asr  {config.ASR_MODEL}', asr_dir()), (f'nllb {config.NLLB_MODEL}', nllb_dir()),
-            (f'llm  {config.LLM_FILE}', llm_path()), (f'tts  {config.TTS_MODEL}', tts_dir())]
+            (f'llm  {config.LLM_FILE}', llm_path()), (f'tts  {config.TTS_MODEL}', tts_dir()),
+            (f'tts  {config.TTS_MODEL_EN}', tts_dir(config.TTS_MODEL_EN))]
     print(f'\n{"model":<58}{"MB":>8}')
     for name, path in rows:
         print(f'{name:<58}{mb(path):>8.1f}')
